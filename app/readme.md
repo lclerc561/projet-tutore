@@ -1,2 +1,5 @@
 commandes pour initialisation:
-npm install electron gray-matter
+npm install
+
+Pour lancer l'appli:
+npm run dev
