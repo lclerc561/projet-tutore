@@ -1,0 +1,4 @@
+base_url = "https://example.com"
+title = "Mon Site Zola"
+compile_sass = true
+generate_feed = true
