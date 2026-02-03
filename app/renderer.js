@@ -1,10 +1,17 @@
+// renderer.js
 const fs = require('fs');
 const path = require('path');
 const matter = require('gray-matter');
 const { ipcRenderer } = require('electron');
+const {
+    parseMarkdownToAst,
+    astToMarkdown,
+    insertHeadingAst
+} = require('./markdownAst');
 
 let currentProjectDir = null;
 let currentFilePath = null;
+let currentAst = null;
 
 window.addEventListener('click', () => {
     if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
@@ -30,16 +37,15 @@ function getAllFiles(dirPath, arrayOfFiles) {
     const files = fs.readdirSync(dirPath);
     arrayOfFiles = arrayOfFiles || [];
 
-    files.forEach(function (file) {
+    files.forEach(file => {
         const fullPath = path.join(dirPath, file);
         if (fs.statSync(fullPath).isDirectory()) {
             arrayOfFiles = getAllFiles(fullPath, arrayOfFiles);
-        } else {
-            if (file.endsWith('.md')) {
-                arrayOfFiles.push(fullPath);
-            }
+        } else if (file.endsWith('.md')) {
+            arrayOfFiles.push(fullPath);
         }
     });
+
     return arrayOfFiles;
 }
 
@@ -115,15 +121,13 @@ function genererFormulaire(frontMatter, markdownContent) {
         wrapper.appendChild(input);
         container.appendChild(wrapper);
     }
-    
-    //Attent le chargement avant de focus pour éviter les bugs
+
     const premierChamp = container.querySelector('input, textarea');
-    if (premierChamp) {
-        setTimeout(() => premierChamp.focus(), 50);
-    }
+    if (premierChamp) setTimeout(() => premierChamp.focus(), 50);
 
     container.dataset.keys = JSON.stringify(keysToSave);
 
+    // --- Contenu Markdown ---
     const contentWrapper = document.createElement('div');
     contentWrapper.className = 'form-group';
     contentWrapper.innerHTML = '<label>CONTENU (Markdown)</label>';
@@ -131,9 +135,39 @@ function genererFormulaire(frontMatter, markdownContent) {
     const textarea = document.createElement('textarea');
     textarea.id = 'field-content';
     textarea.value = markdownContent;
-
     contentWrapper.appendChild(textarea);
     container.appendChild(contentWrapper);
+
+    // --- AST ---
+    currentAst = parseMarkdownToAst(markdownContent);
+
+    // --- UI Ajouter un titre ---
+    const headingWrapper = document.createElement('div');
+    headingWrapper.className = 'form-group';
+    headingWrapper.innerHTML = `
+        <label>Ajouter un titre (H2 min)</label>
+        <select id="heading-level">
+            <option value="2">H2</option>
+            <option value="3">H3</option>
+            <option value="4">H4</option>
+        </select>
+        <input type="text" id="heading-text" placeholder="Texte du titre" style="margin-top:5px;">
+        <button type="button" style="margin-top:5px;">➕ Ajouter le titre</button>
+    `;
+    const btnAdd = headingWrapper.querySelector('button');
+    btnAdd.onclick = () => {
+        const level = parseInt(document.getElementById('heading-level').value, 10);
+        const text = document.getElementById('heading-text').value.trim();
+        if (!text) return alert("Le titre ne peut pas être vide");
+
+        // Resync AST avec le contenu actuel
+        currentAst = parseMarkdownToAst(textarea.value);
+        insertHeadingAst(currentAst, level, text);
+
+        textarea.value = astToMarkdown(currentAst);
+        document.getElementById('heading-text').value = '';
+    };
+    container.appendChild(headingWrapper);
 }
 
 // --- 4. SAUVEGARDE ---
@@ -174,3 +208,7 @@ function sauvegarder() {
         console.error(e);
     }
 }
+
+// Exposer les fonctions globalement pour HTML
+window.choisirDossier = choisirDossier;
+window.sauvegarder = sauvegarder;
