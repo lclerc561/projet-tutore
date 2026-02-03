@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="hero-section">
+    <h1>{{ section.extra.app_name }}</h1>
+    <p class="subtitle">{{ section.extra.subtitle }}</p>
+    
+    <div class="hero-image-container">
+        <img src="{{ section.extra.hero_image }}" alt="Interface de l'application">
+    </div>
+</div>
+
+<div class="why-section">
+    <h2>{{ section.extra.why_title }}</h2>
+    <p>{{ section.extra.why_text }}</p>
+</div>
+
+<div class="features-grid">
+    {% for feature in section.extra.features %}
+    <div class="feature-card">
+        <div class="icon">{{ feature.icon }}</div>
+        <h3>{{ feature.title }}</h3>
+        <p>{{ feature.text }}</p>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock content %}
