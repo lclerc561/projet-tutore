@@ -1,11 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 const matter = require('gray-matter');
-const { ipcRenderer } = require('electron');
+const toml = require('@iarna/toml');
+const { ipcRenderer, shell } = require('electron');
+const { exec } = require('child_process');
+const { validerFormulaire } = require('./validators.js');
 
 let currentProjectDir = null;
 let currentFilePath = null;
+let processusZola = null;
+let arretVolontaire = false;
+let formatActuel = 'yaml'; // Pour se souvenir si c'était +++ ou ---
 
+// --- FIX FOCUS ---
 window.addEventListener('click', () => {
     if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
         window.focus();
@@ -72,7 +79,27 @@ function chargerListeFichiers() {
 function ouvrirFichier(chemin) {
     currentFilePath = chemin;
     const contenuBrut = fs.readFileSync(chemin, 'utf8');
-    const parsed = matter(contenuBrut);
+
+    let parsed;
+
+    // DÉTECTION INTELLIGENTE
+    if (contenuBrut.trim().startsWith('+++')) {
+        // C'est du TOML (Zola par défaut)
+        console.log("Format détecté : TOML (+++)");
+        formatActuel = 'toml';
+        
+        parsed = matter(contenuBrut, {
+            engines: { toml: toml.parse.bind(toml) },
+            language: 'toml',
+            delimiters: '+++'
+        });
+    } else {
+        // C'est du YAML (Standard Markdown)
+        console.log("Format détecté : YAML (---)");
+        formatActuel = 'yaml';
+        parsed = matter(contenuBrut);
+    }
+
     genererFormulaire(parsed.data, parsed.content);
 }
 
@@ -83,6 +110,8 @@ function genererFormulaire(frontMatter, markdownContent) {
     const keysToSave = [];
 
     for (const key in frontMatter) {
+        
+        // On ignore les valeurs nulles
         if (frontMatter[key] === null) continue;
 
         const wrapper = document.createElement('div');
@@ -96,15 +125,30 @@ function genererFormulaire(frontMatter, markdownContent) {
         const valeur = frontMatter[key];
 
         if (typeof valeur === 'boolean') {
+            // Gestion des booléens (Case à cocher)
             input = document.createElement('input');
             input.type = 'checkbox';
             input.checked = valeur;
         } else {
+            // Gestion des champs texte
             input = document.createElement('input');
             input.type = 'text';
-            if (Array.isArray(valeur)) {
+            
+            // --- CORRECTION DATE ICI ---
+            if (valeur instanceof Date) {
+                try {
+                    // On prend la date format ISO (YYYY-MM-DD)
+                    input.value = valeur.toISOString().split('T')[0];
+                } catch (e) {
+                    input.value = String(valeur);
+                }
+            } 
+            // ---------------------------
+            else if (Array.isArray(valeur)) {
+                // Gestion des tableaux (ex: tags = ["a", "b"])
                 input.value = valeur.join(', ');
             } else {
+                // Gestion du texte standard et nombres
                 input.value = String(valeur);
             }
         }
@@ -116,7 +160,7 @@ function genererFormulaire(frontMatter, markdownContent) {
         container.appendChild(wrapper);
     }
     
-    //Attent le chargement avant de focus pour éviter les bugs
+    // Focus sur le premier champ pour écrire direct
     const premierChamp = container.querySelector('input, textarea');
     if (premierChamp) {
         setTimeout(() => premierChamp.focus(), 50);
@@ -124,6 +168,7 @@ function genererFormulaire(frontMatter, markdownContent) {
 
     container.dataset.keys = JSON.stringify(keysToSave);
 
+    // Ajout de la zone de contenu (Markdown)
     const contentWrapper = document.createElement('div');
     contentWrapper.className = 'form-group';
     contentWrapper.innerHTML = '<label>CONTENU (Markdown)</label>';
@@ -136,10 +181,35 @@ function genererFormulaire(frontMatter, markdownContent) {
     container.appendChild(contentWrapper);
 }
 
-// --- 4. SAUVEGARDE ---
+// --- FONCTION UTILITAIRE POUR AFFICHER LES MESSAGES SANS ALERT ---
+function afficherMessage(texte, estErreur) {
+    const msgDiv = document.getElementById('status-message');
+    msgDiv.innerText = texte;
+    msgDiv.style.display = 'block';
+
+    if (estErreur) {
+        // Style ROUGE (Erreur)
+        msgDiv.style.backgroundColor = '#f8d7da';
+        msgDiv.style.color = '#721c24';
+        msgDiv.style.border = '1px solid #f5c6cb';
+    } else {
+        // Style VERT (Succès)
+        msgDiv.style.backgroundColor = '#d4edda';
+        msgDiv.style.color = '#155724';
+        msgDiv.style.border = '1px solid #c3e6cb';
+        
+        // On cache le message vert après 3 secondes
+        setTimeout(() => {
+            msgDiv.style.display = 'none';
+        }, 3000);
+    }
+}
+
+// --- 4. SAUVEGARDE SANS PERTE DE FOCUS ---
 function sauvegarder() {
     if (!currentFilePath) return;
 
+    // 1. Récupération des données
     const keys = JSON.parse(document.getElementById('form-container').dataset.keys);
     const newConfig = {};
 
@@ -150,27 +220,210 @@ function sauvegarder() {
         } else if (input.value.includes(',')) {
             newConfig[key] = input.value.split(',').map(s => s.trim());
         } else {
-            newConfig[key] = input.value;
+            newConfig[key] = input.value.trim();
         }
     });
 
+    // 2. VALIDATION (Sans alert !)
+    const validation = validerFormulaire(newConfig);
+
+    if (!validation.isValid) {
+        // Affiche l'erreur en rouge sans voler le focus
+        afficherMessage("⚠️ " + validation.error, true);
+        return; // On arrête mais on laisse l'utilisateur corriger tranquillement
+    }
+
+    // 3. Écriture du fichier
     const newContent = document.getElementById('field-content').value;
-    const fileString = matter.stringify(newContent, newConfig);
+    let fileString;
 
     try {
+        if (formatActuel === 'toml') {
+            fileString = matter.stringify(newContent, newConfig, {
+                engines: { toml: toml },
+                language: 'toml',
+                delimiters: '+++'
+            });
+        } else {
+            fileString = matter.stringify(newContent, newConfig);
+        }
+
         fs.writeFileSync(currentFilePath, fileString);
-        console.log("Sauvegardé !");
         
-        const btnSave = document.querySelector('.btn');
-        const oldText = btnSave.innerText;
-        btnSave.innerText = "✅ Enregistré !";
-        btnSave.style.background = "green";
-        setTimeout(() => {
-            btnSave.innerText = oldText;
-            btnSave.style.background = "#007bff";
-        }, 1000);
+        console.log(`Sauvegardé en format ${formatActuel} !`);
+        
+        // Mise à jour visuelle (Succès en vert)
+        ouvrirFichier(currentFilePath); 
+        afficherMessage("✅ Sauvegarde réussie !", false);
         
     } catch (e) {
         console.error(e);
+        afficherMessage("Erreur technique : " + e.message, true);
     }
+}
+// --- 5. LANCEMENT ZOLA (CORRIGÉ) ---
+function lancerZola() {
+    if (!currentProjectDir) {
+        alert("Veuillez d'abord charger un projet !");
+        return;
+    }
+
+    // On réinitialise le flag : on commence un nouveau lancement
+    arretVolontaire = false;
+
+    const btnLaunch = document.getElementById('btn-launch');
+    const originalText = btnLaunch.innerText;
+    btnLaunch.innerText = "⏳ Nettoyage...";
+
+    // ÉTAPE 1 : On nettoie tout (Taskkill préventif)
+    exec('taskkill /IM zola.exe /F', (err) => {
+        
+        setTimeout(() => {
+            console.log("Démarrage du nouveau Zola...");
+            
+            let commande = 'zola serve';
+            if (process.platform === 'win32') {
+                const userHome = process.env.USERPROFILE || 'C:\\';
+                const wingetPath = path.join(userHome, 'AppData', 'Local', 'Microsoft', 'WinGet', 'Packages', 'getzola.zola_Microsoft.Winget.Source_8wekyb3d8bbwe', 'zola.exe');
+                if (fs.existsSync(wingetPath)) commande = `"${wingetPath}" serve`;
+            }
+
+            processusZola = exec(commande, { cwd: currentProjectDir }, (error, stdout, stderr) => {
+                // IMPORTANT : On affiche l'erreur SEULEMENT si ce n'est pas un arrêt volontaire
+                if (error && !error.killed && !arretVolontaire) {
+                    console.error("Crash Zola :", error);
+                    alert(`Erreur Zola :\n${stderr || error.message}`);
+                    arreterZola(); // On nettoie l'interface
+                }
+            });
+
+            // Interface
+            document.getElementById('btn-launch').style.display = 'none';
+            document.getElementById('btn-stop').style.display = 'block';
+            btnLaunch.innerText = originalText;
+
+            // Navigateur
+            setTimeout(() => {
+                if (processusZola && !arretVolontaire) {
+                    shell.openExternal('http://127.0.0.1:1111');
+                }
+            }, 2000);
+
+        }, 500); 
+    });
+}
+
+// --- 6. ARRÊT ZOLA (CORRIGÉ) ---
+function arreterZola() {
+    // On signale que c'est nous qui arrêtons (pour empêcher l'alerte d'erreur)
+    arretVolontaire = true;
+
+    // On tue tout ce qui s'appelle Zola brutalement
+    exec('taskkill /IM zola.exe /F', (err) => {
+        if(!err) console.log("Zola tué avec succès.");
+    });
+
+    processusZola = null;
+
+    // Interface
+    const btnLaunch = document.getElementById('btn-launch');
+    const btnStop = document.getElementById('btn-stop');
+
+    if (btnLaunch && btnStop) {
+        btnStop.style.display = 'none';
+        btnLaunch.style.display = 'block';
+        btnLaunch.innerText = "▶️ Prévisualiser le site";
+    }
+}
+
+// --- 7. GÉNÉRATION (Le système de fenêtre) ---
+
+// A. Cette fonction ouvre juste la fenêtre
+function genererSite() {
+    if (!currentProjectDir) {
+        alert("Veuillez d'abord charger un projet !");
+        return;
+    }
+    // On affiche la fenêtre HTML
+    document.getElementById('custom-prompt').classList.add('visible');
+    // On met le focus dans le champ texte pour taper direct
+    document.getElementById('prompt-input').focus();
+}
+
+// B. Cette fonction ferme la fenêtre (Annuler)
+function fermerPrompt() {
+    document.getElementById('custom-prompt').classList.remove('visible');
+    document.getElementById('prompt-input').value = ''; // On vide le champ
+}
+
+// C. LA VRAIE FONCTION DE TRAVAIL (Corrigée avec __dirname)
+function confirmerGeneration() {
+    // 1. Récupérer le nom
+    const nomDossier = document.getElementById('prompt-input').value;
+
+    if (!nomDossier || nomDossier.trim() === "") {
+        alert("Le nom ne peut pas être vide !");
+        return;
+    }
+
+    fermerPrompt();
+
+    // 2. Nettoyage du nom
+    const nomNettoye = nomDossier.replace(/[^a-zA-Z0-9-_]/g, '_');
+
+    // 3. DÉFINITION DES CHEMINS (C'est ici la correction !)
+    // __dirname = Le dossier où se trouve ce fichier renderer.js (donc la racine de ton app)
+    // Cela créera : .../app/app/rendu_genere/ton-site
+    const dossierExportsRacine = path.join(__dirname, 'rendu_genere');
+    const dossierSortie = path.join(dossierExportsRacine, nomNettoye);
+
+    // 4. Vérifications
+    
+    // a) Création du dossier racine 'rendu_genere' s'il n'existe pas
+    if (!fs.existsSync(dossierExportsRacine)) {
+        try {
+            fs.mkdirSync(dossierExportsRacine);
+        } catch (e) {
+            alert(`Impossible de créer le dossier : ${dossierExportsRacine}\nErreur : ${e.message}`);
+            return;
+        }
+    }
+
+    // b) Anti-Doublon
+    if (fs.existsSync(dossierSortie)) {
+        alert(`⚠️ Attention : Le dossier "${nomNettoye}" existe déjà dans "rendu_genere".\nChoisissez un autre nom.`);
+        genererSite(); 
+        return;
+    }
+
+    // --- Lancement de Zola ---
+    const btn = document.querySelector('button[onclick="genererSite()"]');
+    const oldText = btn.innerText;
+    btn.innerText = "⏳ Génération...";
+
+    console.log(`Génération vers : ${dossierSortie}`);
+
+    let zolaExe = 'zola'; 
+    if (process.platform === 'win32') {
+        const userHome = process.env.USERPROFILE || 'C:\\';
+        const wingetPath = path.join(userHome, 'AppData', 'Local', 'Microsoft', 'WinGet', 'Packages', 'getzola.zola_Microsoft.Winget.Source_8wekyb3d8bbwe', 'zola.exe');
+        if (fs.existsSync(wingetPath)) zolaExe = `"${wingetPath}"`;
+    }
+
+    const commande = `${zolaExe} build --output-dir "${dossierSortie}"`;
+
+    exec(commande, { cwd: currentProjectDir }, (error, stdout, stderr) => {
+        btn.innerText = oldText;
+
+        if (error) {
+            console.error("Erreur Build :", error);
+            alert(`Erreur lors de la génération :\n${stderr || error.message}`);
+            return;
+        }
+
+        const reponse = confirm(`✅ Site généré dans :\n${dossierSortie}\n\nVoulez-vous ouvrir le dossier ?`);
+        if (reponse) {
+            shell.openPath(dossierSortie);
+        }
+    });
 }

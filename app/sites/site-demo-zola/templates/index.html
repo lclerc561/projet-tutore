@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>
+        {% if page.title %} {{ page.title }} {% else %} {{ config.title }} {% endif %}
+    </title>
+    <style>
+        body { font-family: sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        header { background: #f4f4f4; padding: 15px; margin-bottom: 30px; border-radius: 8px; border-bottom: 2px solid #ddd; }
+        h1 { margin: 0; color: #333; }
+        nav { margin-top: 10px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #007bff; font-weight: bold; }
+        nav a:hover { text-decoration: underline; }
+        
+        /* Pour que les citations et le code soient jolis */
+        blockquote { border-left: 4px solid #ccc; margin: 0; padding-left: 15px; color: #666; font-style: italic; }
+        code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 30px 0; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>{{ config.title }}</h1>
+        <nav>
+            <a href="{{ get_url(path="@/_index.md") }}">🏠 Accueil</a>
+            <a href="{{ get_url(path="@/super-article.md") }}">📄 Mon Article</a>
+        </nav>
+    </header>
+
+    <main>
+        {% if page %}
+            <h2>{{ page.title }}</h2>
+            <small>Publié le {{ page.date }}</small>
+            <hr>
+            {{ page.content | safe }}
+
+        {% elif section %}
+            {{ section.content | safe }}
+            
+            <hr>
+            <h3>📌 Articles récents :</h3>
+            <ul>
+            {% for p in section.pages %}
+                <li><a href="{{ p.permalink }}">{{ p.title }}</a></li>
+            {% endfor %}
+            </ul>
+
+        {% endif %}
+        
+    </main>
+
+</body>
+</html>
