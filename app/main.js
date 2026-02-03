@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+require('electron-reload')(__dirname);
 
 function createWindow() {
     const win = new BrowserWindow({

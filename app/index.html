@@ -52,6 +52,11 @@
             border: none;
             cursor: pointer;
         }
+
+        /* Ajoute ça dans ton <style> existant */
+        #custom-prompt.visible {
+            display: flex !important;
+        }
     </style>
 </head>
 
@@ -64,9 +69,21 @@
             📂 Charger Projet
         </button>
 
-        <button onclick="lancerZola()"
+        <button id="btn-launch" onclick="lancerZola()"
             style="width:100%; padding:10px; margin-bottom:10px; cursor:pointer; background-color: #28a745; color: white; border: none;">
             ▶️ Prévisualiser le site
+        </button>
+
+        <button id="btn-stop" onclick="arreterZola()"
+            style="width:100%; padding:10px; margin-bottom:10px; cursor:pointer; background-color: #dc3545; color: white; border: none; display: none;">
+            ⏹️ Arrêter le serveur
+        </button>
+
+        <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
+
+        <button onclick="genererSite()"
+            style="width:100%; padding:10px; margin-bottom:10px; cursor:pointer; background-color: #6f42c1; color: white; border: none;">
+            🔨 Générer le site (Export)
         </button>
 
         <div id="file-list"></div>
@@ -76,6 +93,23 @@
         <h2>Éditeur</h2>
         <div id="form-container"></div>
         <button class="btn" onclick="sauvegarder()">Enregistrer les modifications</button>
+    </div>
+
+    <div id="custom-prompt"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div
+            style="background: white; padding: 20px; border-radius: 8px; width: 300px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Nom de l'export</h3>
+            <p>Entrez le nom du dossier :</p>
+            <input type="text" id="prompt-input" style="width: 100%; margin-bottom: 15px; padding: 8px;"
+                placeholder="ex: version-1">
+            <div style="text-align: right;">
+                <button onclick="fermerPrompt()"
+                    style="background: #ccc; border: none; padding: 8px 15px; cursor: pointer; margin-right: 5px;">Annuler</button>
+                <button onclick="confirmerGeneration()"
+                    style="background: #6f42c1; color: white; border: none; padding: 8px 15px; cursor: pointer;">Valider</button>
+            </div>
+        </div>
     </div>
 
     <script src="renderer.js"></script>
