@@ -1,0 +1,5 @@
+base_url = "http://127.0.0.1:1111"
+title = "Mon Site Zola GUI"
+compile_sass = true
+build_search_index = false
+generate_feeds = true
