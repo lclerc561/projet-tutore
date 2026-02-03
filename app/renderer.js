@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const matter = require('gray-matter');
-const { ipcRenderer } = require('electron');
+const { ipcRenderer, shell } = require('electron');
+const { exec } = require('child_process');
 
 let currentProjectDir = null;
 let currentFilePath = null;
@@ -173,4 +174,47 @@ function sauvegarder() {
     } catch (e) {
         console.error(e);
     }
+}
+
+//--- 5. LANCEMENT ZOLA ---
+let processusZola = null;
+
+function lancerZola() {
+    // 1. Sécurité : faut avoir chargé un dossier
+    if (!currentProjectDir) {
+        alert("Veuillez d'abord charger un projet !");
+        return;
+    }
+
+    // 2. Si un serveur tourne déjà, on le tue pour éviter l'erreur "Port already in use"
+    if (processusZola) {
+        try {
+            processusZola.kill(); // On arrête l'ancien
+            console.log("Ancien serveur Zola arrêté.");
+        } catch(e) { 
+            console.log("Erreur lors de l'arrêt : " + e); 
+        }
+    }
+
+    console.log("Démarrage de Zola dans : " + currentProjectDir);
+    
+    // 3. On lance la commande "zola serve" dans le dossier du projet
+    // cwd = Current Working Directory (le dossier où la commande s'exécute)
+    processusZola = exec('zola serve', { cwd: currentProjectDir }, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Erreur Zola : ${error}`);
+            alert("Impossible de lancer Zola.\nEst-il bien installé sur l'ordinateur ?");
+            return;
+        }
+    });
+
+    // 4. On attend 2 secondes que le serveur démarre, puis on ouvre le navigateur
+    setTimeout(() => {
+        // Zola tourne par défaut sur le port 1111
+        shell.openExternal('http://127.0.0.1:1111');
+        
+        // Petit effet visuel sur le bouton
+        const btn = document.querySelector('button[onclick="lancerZola()"]');
+        if(btn) btn.innerText = "✅ Serveur en ligne (Port 1111)";
+    }, 2000);
 }
