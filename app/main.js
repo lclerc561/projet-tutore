@@ -1,6 +1,8 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
-require('electron-reload')(__dirname);
+require('electron-reload')(__dirname, {
+    ignored: /node_modules|sites|rendu_genere|[\/\\]\./
+});
 
 function createWindow() {
     const win = new BrowserWindow({

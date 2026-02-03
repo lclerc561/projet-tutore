@@ -1,13 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 const matter = require('gray-matter');
+const toml = require('@iarna/toml');
 const { ipcRenderer, shell } = require('electron');
 const { exec } = require('child_process');
+const { validerFormulaire } = require('./validators.js');
 
 let currentProjectDir = null;
 let currentFilePath = null;
 let processusZola = null;
-let arretVolontaire = false; // NOUVEAU : Pour savoir si c'est toi qui as stoppé
+let arretVolontaire = false;
+let formatActuel = 'yaml'; // Pour se souvenir si c'était +++ ou ---
 
 // --- FIX FOCUS ---
 window.addEventListener('click', () => {
@@ -76,7 +79,27 @@ function chargerListeFichiers() {
 function ouvrirFichier(chemin) {
     currentFilePath = chemin;
     const contenuBrut = fs.readFileSync(chemin, 'utf8');
-    const parsed = matter(contenuBrut);
+
+    let parsed;
+
+    // DÉTECTION INTELLIGENTE
+    if (contenuBrut.trim().startsWith('+++')) {
+        // C'est du TOML (Zola par défaut)
+        console.log("Format détecté : TOML (+++)");
+        formatActuel = 'toml';
+        
+        parsed = matter(contenuBrut, {
+            engines: { toml: toml.parse.bind(toml) },
+            language: 'toml',
+            delimiters: '+++'
+        });
+    } else {
+        // C'est du YAML (Standard Markdown)
+        console.log("Format détecté : YAML (---)");
+        formatActuel = 'yaml';
+        parsed = matter(contenuBrut);
+    }
+
     genererFormulaire(parsed.data, parsed.content);
 }
 
@@ -87,6 +110,8 @@ function genererFormulaire(frontMatter, markdownContent) {
     const keysToSave = [];
 
     for (const key in frontMatter) {
+        
+        // On ignore les valeurs nulles
         if (frontMatter[key] === null) continue;
 
         const wrapper = document.createElement('div');
@@ -100,15 +125,30 @@ function genererFormulaire(frontMatter, markdownContent) {
         const valeur = frontMatter[key];
 
         if (typeof valeur === 'boolean') {
+            // Gestion des booléens (Case à cocher)
             input = document.createElement('input');
             input.type = 'checkbox';
             input.checked = valeur;
         } else {
+            // Gestion des champs texte
             input = document.createElement('input');
             input.type = 'text';
-            if (Array.isArray(valeur)) {
+            
+            // --- CORRECTION DATE ICI ---
+            if (valeur instanceof Date) {
+                try {
+                    // On prend la date format ISO (YYYY-MM-DD)
+                    input.value = valeur.toISOString().split('T')[0];
+                } catch (e) {
+                    input.value = String(valeur);
+                }
+            } 
+            // ---------------------------
+            else if (Array.isArray(valeur)) {
+                // Gestion des tableaux (ex: tags = ["a", "b"])
                 input.value = valeur.join(', ');
             } else {
+                // Gestion du texte standard et nombres
                 input.value = String(valeur);
             }
         }
@@ -120,6 +160,7 @@ function genererFormulaire(frontMatter, markdownContent) {
         container.appendChild(wrapper);
     }
     
+    // Focus sur le premier champ pour écrire direct
     const premierChamp = container.querySelector('input, textarea');
     if (premierChamp) {
         setTimeout(() => premierChamp.focus(), 50);
@@ -127,6 +168,7 @@ function genererFormulaire(frontMatter, markdownContent) {
 
     container.dataset.keys = JSON.stringify(keysToSave);
 
+    // Ajout de la zone de contenu (Markdown)
     const contentWrapper = document.createElement('div');
     contentWrapper.className = 'form-group';
     contentWrapper.innerHTML = '<label>CONTENU (Markdown)</label>';
@@ -139,10 +181,35 @@ function genererFormulaire(frontMatter, markdownContent) {
     container.appendChild(contentWrapper);
 }
 
-// --- 4. SAUVEGARDE ---
+// --- FONCTION UTILITAIRE POUR AFFICHER LES MESSAGES SANS ALERT ---
+function afficherMessage(texte, estErreur) {
+    const msgDiv = document.getElementById('status-message');
+    msgDiv.innerText = texte;
+    msgDiv.style.display = 'block';
+
+    if (estErreur) {
+        // Style ROUGE (Erreur)
+        msgDiv.style.backgroundColor = '#f8d7da';
+        msgDiv.style.color = '#721c24';
+        msgDiv.style.border = '1px solid #f5c6cb';
+    } else {
+        // Style VERT (Succès)
+        msgDiv.style.backgroundColor = '#d4edda';
+        msgDiv.style.color = '#155724';
+        msgDiv.style.border = '1px solid #c3e6cb';
+        
+        // On cache le message vert après 3 secondes
+        setTimeout(() => {
+            msgDiv.style.display = 'none';
+        }, 3000);
+    }
+}
+
+// --- 4. SAUVEGARDE SANS PERTE DE FOCUS ---
 function sauvegarder() {
     if (!currentFilePath) return;
 
+    // 1. Récupération des données
     const keys = JSON.parse(document.getElementById('form-container').dataset.keys);
     const newConfig = {};
 
@@ -153,31 +220,47 @@ function sauvegarder() {
         } else if (input.value.includes(',')) {
             newConfig[key] = input.value.split(',').map(s => s.trim());
         } else {
-            newConfig[key] = input.value;
+            newConfig[key] = input.value.trim();
         }
     });
 
+    // 2. VALIDATION (Sans alert !)
+    const validation = validerFormulaire(newConfig);
+
+    if (!validation.isValid) {
+        // Affiche l'erreur en rouge sans voler le focus
+        afficherMessage("⚠️ " + validation.error, true);
+        return; // On arrête mais on laisse l'utilisateur corriger tranquillement
+    }
+
+    // 3. Écriture du fichier
     const newContent = document.getElementById('field-content').value;
-    const fileString = matter.stringify(newContent, newConfig);
+    let fileString;
 
     try {
+        if (formatActuel === 'toml') {
+            fileString = matter.stringify(newContent, newConfig, {
+                engines: { toml: toml },
+                language: 'toml',
+                delimiters: '+++'
+            });
+        } else {
+            fileString = matter.stringify(newContent, newConfig);
+        }
+
         fs.writeFileSync(currentFilePath, fileString);
-        console.log("Sauvegardé !");
         
-        const btnSave = document.querySelector('.btn');
-        const oldText = btnSave.innerText;
-        btnSave.innerText = "✅ Enregistré !";
-        btnSave.style.background = "green";
-        setTimeout(() => {
-            btnSave.innerText = oldText;
-            btnSave.style.background = "#007bff";
-        }, 1000);
+        console.log(`Sauvegardé en format ${formatActuel} !`);
+        
+        // Mise à jour visuelle (Succès en vert)
+        ouvrirFichier(currentFilePath); 
+        afficherMessage("✅ Sauvegarde réussie !", false);
         
     } catch (e) {
         console.error(e);
+        afficherMessage("Erreur technique : " + e.message, true);
     }
 }
-
 // --- 5. LANCEMENT ZOLA (CORRIGÉ) ---
 function lancerZola() {
     if (!currentProjectDir) {

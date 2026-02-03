@@ -12,6 +12,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
     "electron": "^40.1.0",
     "gray-matter": "^4.0.3"
   },

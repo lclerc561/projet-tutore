@@ -1,3 +1,7 @@
+# L'URL de base (on met une fausse pour l'instant)
 base_url = "https://example.com"
-title = "Mon Site Zola"
-compile_sass = true
+title = "Mon Site de Test"
+description = "Un site simple pour tester mon éditeur"
+
+[extra]
+auteur = "Moi"
