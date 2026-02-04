@@ -1,1 +1,3 @@
 node_modules
+rendu_genere/*
+package-lock.json

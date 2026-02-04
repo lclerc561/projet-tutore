@@ -1,5 +1,8 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+require('electron-reload')(__dirname, {
+    ignored: /node_modules|sites|rendu_genere|[\/\\]\./
+});
 
 function createWindow() {
     const win = new BrowserWindow({
@@ -21,6 +24,36 @@ function createWindow() {
         win.webContents.focus(); // Focus sur le contenu HTML (Clavier)
     });
 }
+
+ipcMain.handle('dialog:openImage', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [
+            { name: 'Images', extensions: ['jpg', 'png', 'gif', 'webp', 'jpeg', 'svg'] }
+        ]
+    });
+    
+    if (canceled) {
+        return null;
+    } else {
+        return filePaths[0]; // Renvoie le chemin complet de l'image choisie
+    }
+});
+
+ipcMain.handle('dialog:openVideo', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [
+            { name: 'Vidéos', extensions: ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'] }
+        ]
+    });
+    
+    if (canceled) {
+        return null;
+    } else {
+        return filePaths[0];
+    }
+});
 
 app.whenReady().then(createWindow);
 
