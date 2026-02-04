@@ -10,7 +10,11 @@ let currentProjectDir = null;
 let currentFilePath = null;
 let processusZola = null;
 let arretVolontaire = false;
+<<<<<<< Updated upstream
 let formatActuel = 'yaml'; 
+=======
+let formatActuel = 'yaml'; // Pour se souvenir si c'était +++ ou ---
+>>>>>>> Stashed changes
 
 // --- FIX FOCUS ---
 window.addEventListener('click', () => {
@@ -73,21 +77,41 @@ function chargerListeFichiers() {
 function ouvrirFichier(chemin) {
     currentFilePath = chemin;
     const contenuBrut = fs.readFileSync(chemin, 'utf8');
+<<<<<<< Updated upstream
     let parsed;
 
     if (contenuBrut.trim().startsWith('+++')) {
         console.log("Format détecté : TOML (+++)");
         formatActuel = 'toml';
+=======
+
+    let parsed;
+
+    // DÉTECTION INTELLIGENTE
+    if (contenuBrut.trim().startsWith('+++')) {
+        // C'est du TOML (Zola par défaut)
+        console.log("Format détecté : TOML (+++)");
+        formatActuel = 'toml';
+        
+>>>>>>> Stashed changes
         parsed = matter(contenuBrut, {
             engines: { toml: toml.parse.bind(toml) },
             language: 'toml',
             delimiters: '+++'
         });
     } else {
+<<<<<<< Updated upstream
+=======
+        // C'est du YAML (Standard Markdown)
+>>>>>>> Stashed changes
         console.log("Format détecté : YAML (---)");
         formatActuel = 'yaml';
         parsed = matter(contenuBrut);
     }
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     genererFormulaire(parsed.data, parsed.content);
 }
 
@@ -159,7 +183,17 @@ function genererFormulaire(frontMatter, markdownContent) {
     container.innerHTML = '';
     const schema = [];
 
+<<<<<<< Updated upstream
     function creerChamp(key, valeur, context) {
+=======
+    const keysToSave = [];
+
+    for (const key in frontMatter) {
+        
+        // On ignore les valeurs nulles
+        if (frontMatter[key] === null) continue;
+
+>>>>>>> Stashed changes
         const wrapper = document.createElement('div');
         wrapper.className = 'form-group';
         
@@ -171,6 +205,7 @@ function genererFormulaire(frontMatter, markdownContent) {
         const inputId = `field-${context}-${key}`;
         const previewId = `preview-${context}-${key}`;
 
+<<<<<<< Updated upstream
         // --- DÉTECTION TYPE ---
         const lowerKey = key.toLowerCase();
         
@@ -292,20 +327,42 @@ function genererFormulaire(frontMatter, markdownContent) {
             wrapper.appendChild(imgContainer);
 
         } else if (typeof valeur === 'boolean') {
+=======
+        if (typeof valeur === 'boolean') {
+            // Gestion des booléens (Case à cocher)
+>>>>>>> Stashed changes
             input = document.createElement('input');
             input.type = 'checkbox';
             input.checked = valeur;
             input.id = inputId;
             wrapper.appendChild(input);
         } else {
+            // Gestion des champs texte
             input = document.createElement('input');
             input.type = 'text';
+<<<<<<< Updated upstream
             if (valeur instanceof Date) {
                 try { input.value = valeur.toISOString().split('T')[0]; } 
                 catch (e) { input.value = String(valeur); }
             } else if (Array.isArray(valeur)) {
+=======
+            
+            // --- CORRECTION DATE ICI ---
+            if (valeur instanceof Date) {
+                try {
+                    // On prend la date format ISO (YYYY-MM-DD)
+                    input.value = valeur.toISOString().split('T')[0];
+                } catch (e) {
+                    input.value = String(valeur);
+                }
+            } 
+            // ---------------------------
+            else if (Array.isArray(valeur)) {
+                // Gestion des tableaux (ex: tags = ["a", "b"])
+>>>>>>> Stashed changes
                 input.value = valeur.join(', ');
             } else {
+                // Gestion du texte standard et nombres
                 input.value = String(valeur);
             }
             input.id = inputId;
@@ -327,11 +384,16 @@ function genererFormulaire(frontMatter, markdownContent) {
         }
     }
     
+<<<<<<< Updated upstream
+=======
+    // Focus sur le premier champ pour écrire direct
+>>>>>>> Stashed changes
     const premierChamp = container.querySelector('input, textarea');
     if (premierChamp) setTimeout(() => premierChamp.focus(), 50);
 
     container.dataset.schema = JSON.stringify(schema);
 
+    // Ajout de la zone de contenu (Markdown)
     const contentWrapper = document.createElement('div');
     contentWrapper.className = 'form-group';
     contentWrapper.innerHTML = '<label>CONTENU (Markdown)</label>';
@@ -342,17 +404,26 @@ function genererFormulaire(frontMatter, markdownContent) {
     container.appendChild(contentWrapper);
 }
 
+<<<<<<< Updated upstream
 // --- FONCTION UTILITAIRE MESSAGE ---
+=======
+// --- FONCTION UTILITAIRE POUR AFFICHER LES MESSAGES SANS ALERT ---
+>>>>>>> Stashed changes
 function afficherMessage(texte, estErreur) {
     const msgDiv = document.getElementById('status-message');
     msgDiv.innerText = texte;
     msgDiv.style.display = 'block';
 
     if (estErreur) {
+<<<<<<< Updated upstream
+=======
+        // Style ROUGE (Erreur)
+>>>>>>> Stashed changes
         msgDiv.style.backgroundColor = '#f8d7da';
         msgDiv.style.color = '#721c24';
         msgDiv.style.border = '1px solid #f5c6cb';
     } else {
+<<<<<<< Updated upstream
         msgDiv.style.backgroundColor = '#d4edda';
         msgDiv.style.color = '#155724';
         msgDiv.style.border = '1px solid #c3e6cb';
@@ -364,6 +435,26 @@ function afficherMessage(texte, estErreur) {
 function sauvegarder() {
     if (!currentFilePath) return;
     const schema = JSON.parse(document.getElementById('form-container').dataset.schema);
+=======
+        // Style VERT (Succès)
+        msgDiv.style.backgroundColor = '#d4edda';
+        msgDiv.style.color = '#155724';
+        msgDiv.style.border = '1px solid #c3e6cb';
+        
+        // On cache le message vert après 3 secondes
+        setTimeout(() => {
+            msgDiv.style.display = 'none';
+        }, 3000);
+    }
+}
+
+// --- 4. SAUVEGARDE SANS PERTE DE FOCUS ---
+function sauvegarder() {
+    if (!currentFilePath) return;
+
+    // 1. Récupération des données
+    const keys = JSON.parse(document.getElementById('form-container').dataset.keys);
+>>>>>>> Stashed changes
     const newConfig = {};
 
     schema.forEach(item => {
@@ -375,6 +466,7 @@ function sauvegarder() {
         } else if (input.value.includes(',')) {
             val = input.value.split(',').map(s => s.trim());
         } else {
+<<<<<<< Updated upstream
             val = input.value.trim();
         }
         if (item.context === 'extra') {
@@ -390,6 +482,24 @@ function sauvegarder() {
         afficherMessage("⚠️ " + validation.error, true);
         return;
     }
+=======
+            newConfig[key] = input.value.trim();
+        }
+    });
+
+    // 2. VALIDATION (Sans alert !)
+    const validation = validerFormulaire(newConfig);
+
+    if (!validation.isValid) {
+        // Affiche l'erreur en rouge sans voler le focus
+        afficherMessage("⚠️ " + validation.error, true);
+        return; // On arrête mais on laisse l'utilisateur corriger tranquillement
+    }
+
+    // 3. Écriture du fichier
+    const newContent = document.getElementById('field-content').value;
+    let fileString;
+>>>>>>> Stashed changes
 
     const newContent = document.getElementById('field-content').value;
     let fileString;
@@ -403,35 +513,68 @@ function sauvegarder() {
         } else {
             fileString = matter.stringify(newContent, newConfig);
         }
+<<<<<<< Updated upstream
         fs.writeFileSync(currentFilePath, fileString);
         ouvrirFichier(currentFilePath); 
         afficherMessage("✅ Sauvegarde réussie !", false);
+=======
+
+        fs.writeFileSync(currentFilePath, fileString);
+        
+        console.log(`Sauvegardé en format ${formatActuel} !`);
+        
+        // Mise à jour visuelle (Succès en vert)
+        ouvrirFichier(currentFilePath); 
+        afficherMessage("✅ Sauvegarde réussie !", false);
+        
+>>>>>>> Stashed changes
     } catch (e) {
         console.error(e);
         afficherMessage("Erreur technique : " + e.message, true);
     }
 }
+<<<<<<< Updated upstream
 
 // --- 5. LANCEMENT ZOLA ---
+=======
+// --- 5. LANCEMENT ZOLA (CORRIGÉ) ---
+>>>>>>> Stashed changes
 function lancerZola() {
     if (!currentProjectDir) {
         alert("Veuillez d'abord charger un projet !");
         return;
     }
+<<<<<<< Updated upstream
     arretVolontaire = false;
+=======
+
+    // On réinitialise le flag : on commence un nouveau lancement
+    arretVolontaire = false;
+
+>>>>>>> Stashed changes
     const btnLaunch = document.getElementById('btn-launch');
     const originalText = btnLaunch.innerText;
     btnLaunch.innerText = "⏳ Nettoyage...";
 
+<<<<<<< Updated upstream
     exec('taskkill /IM zola.exe /F', (err) => {
         setTimeout(() => {
             console.log("Démarrage du nouveau Zola...");
+=======
+    // ÉTAPE 1 : On nettoie tout (Taskkill préventif)
+    exec('taskkill /IM zola.exe /F', (err) => {
+        
+        setTimeout(() => {
+            console.log("Démarrage du nouveau Zola...");
+            
+>>>>>>> Stashed changes
             let commande = 'zola serve';
             if (process.platform === 'win32') {
                 const userHome = process.env.USERPROFILE || 'C:\\';
                 const wingetPath = path.join(userHome, 'AppData', 'Local', 'Microsoft', 'WinGet', 'Packages', 'getzola.zola_Microsoft.Winget.Source_8wekyb3d8bbwe', 'zola.exe');
                 if (fs.existsSync(wingetPath)) commande = `"${wingetPath}" serve`;
             }
+<<<<<<< Updated upstream
             processusZola = exec(commande, { cwd: currentProjectDir }, (error, stdout, stderr) => {
                 if (error && !error.killed && !arretVolontaire) {
                     console.error("Crash Zola :", error);
@@ -442,15 +585,38 @@ function lancerZola() {
             document.getElementById('btn-launch').style.display = 'none';
             document.getElementById('btn-stop').style.display = 'block';
             btnLaunch.innerText = originalText;
+=======
+
+            processusZola = exec(commande, { cwd: currentProjectDir }, (error, stdout, stderr) => {
+                // IMPORTANT : On affiche l'erreur SEULEMENT si ce n'est pas un arrêt volontaire
+                if (error && !error.killed && !arretVolontaire) {
+                    console.error("Crash Zola :", error);
+                    alert(`Erreur Zola :\n${stderr || error.message}`);
+                    arreterZola(); // On nettoie l'interface
+                }
+            });
+
+            // Interface
+            document.getElementById('btn-launch').style.display = 'none';
+            document.getElementById('btn-stop').style.display = 'block';
+            btnLaunch.innerText = originalText;
+
+            // Navigateur
+>>>>>>> Stashed changes
             setTimeout(() => {
                 if (processusZola && !arretVolontaire) {
                     shell.openExternal('http://127.0.0.1:1111');
                 }
             }, 2000);
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
         }, 500); 
     });
 }
 
+<<<<<<< Updated upstream
 // --- 6. ARRÊT ZOLA ---
 function arreterZola() {
     arretVolontaire = true;
@@ -460,6 +626,24 @@ function arreterZola() {
     processusZola = null;
     const btnLaunch = document.getElementById('btn-launch');
     const btnStop = document.getElementById('btn-stop');
+=======
+// --- 6. ARRÊT ZOLA (CORRIGÉ) ---
+function arreterZola() {
+    // On signale que c'est nous qui arrêtons (pour empêcher l'alerte d'erreur)
+    arretVolontaire = true;
+
+    // On tue tout ce qui s'appelle Zola brutalement
+    exec('taskkill /IM zola.exe /F', (err) => {
+        if(!err) console.log("Zola tué avec succès.");
+    });
+
+    processusZola = null;
+
+    // Interface
+    const btnLaunch = document.getElementById('btn-launch');
+    const btnStop = document.getElementById('btn-stop');
+
+>>>>>>> Stashed changes
     if (btnLaunch && btnStop) {
         btnStop.style.display = 'none';
         btnLaunch.style.display = 'block';
@@ -467,12 +651,19 @@ function arreterZola() {
     }
 }
 
+<<<<<<< Updated upstream
 // --- 7. GÉNÉRATION ---
+=======
+// --- 7. GÉNÉRATION (Le système de fenêtre) ---
+
+// A. Cette fonction ouvre juste la fenêtre
+>>>>>>> Stashed changes
 function genererSite() {
     if (!currentProjectDir) {
         alert("Veuillez d'abord charger un projet !");
         return;
     }
+<<<<<<< Updated upstream
     document.getElementById('custom-prompt').classList.add('visible');
     document.getElementById('prompt-input').focus();
 }
@@ -484,10 +675,30 @@ function fermerPrompt() {
 
 function confirmerGeneration() {
     const nomDossier = document.getElementById('prompt-input').value;
+=======
+    // On affiche la fenêtre HTML
+    document.getElementById('custom-prompt').classList.add('visible');
+    // On met le focus dans le champ texte pour taper direct
+    document.getElementById('prompt-input').focus();
+}
+
+// B. Cette fonction ferme la fenêtre (Annuler)
+function fermerPrompt() {
+    document.getElementById('custom-prompt').classList.remove('visible');
+    document.getElementById('prompt-input').value = ''; // On vide le champ
+}
+
+// C. LA VRAIE FONCTION DE TRAVAIL (Corrigée avec __dirname)
+function confirmerGeneration() {
+    // 1. Récupérer le nom
+    const nomDossier = document.getElementById('prompt-input').value;
+
+>>>>>>> Stashed changes
     if (!nomDossier || nomDossier.trim() === "") {
         alert("Le nom ne peut pas être vide !");
         return;
     }
+<<<<<<< Updated upstream
     fermerPrompt();
     const nomNettoye = nomDossier.replace(/[^a-zA-Z0-9-_]/g, '_');
     const dossierExportsRacine = path.join(__dirname, 'rendu_genere');
@@ -502,26 +713,81 @@ function confirmerGeneration() {
         genererSite(); 
         return;
     }
+=======
+
+    fermerPrompt();
+
+    // 2. Nettoyage du nom
+    const nomNettoye = nomDossier.replace(/[^a-zA-Z0-9-_]/g, '_');
+
+    // 3. DÉFINITION DES CHEMINS (C'est ici la correction !)
+    // __dirname = Le dossier où se trouve ce fichier renderer.js (donc la racine de ton app)
+    // Cela créera : .../app/app/rendu_genere/ton-site
+    const dossierExportsRacine = path.join(__dirname, 'rendu_genere');
+    const dossierSortie = path.join(dossierExportsRacine, nomNettoye);
+
+    // 4. Vérifications
+    
+    // a) Création du dossier racine 'rendu_genere' s'il n'existe pas
+    if (!fs.existsSync(dossierExportsRacine)) {
+        try {
+            fs.mkdirSync(dossierExportsRacine);
+        } catch (e) {
+            alert(`Impossible de créer le dossier : ${dossierExportsRacine}\nErreur : ${e.message}`);
+            return;
+        }
+    }
+
+    // b) Anti-Doublon
+    if (fs.existsSync(dossierSortie)) {
+        alert(`⚠️ Attention : Le dossier "${nomNettoye}" existe déjà dans "rendu_genere".\nChoisissez un autre nom.`);
+        genererSite(); 
+        return;
+    }
+
+    // --- Lancement de Zola ---
+>>>>>>> Stashed changes
     const btn = document.querySelector('button[onclick="genererSite()"]');
     const oldText = btn.innerText;
     btn.innerText = "⏳ Génération...";
 
+<<<<<<< Updated upstream
+=======
+    console.log(`Génération vers : ${dossierSortie}`);
+
+>>>>>>> Stashed changes
     let zolaExe = 'zola'; 
     if (process.platform === 'win32') {
         const userHome = process.env.USERPROFILE || 'C:\\';
         const wingetPath = path.join(userHome, 'AppData', 'Local', 'Microsoft', 'WinGet', 'Packages', 'getzola.zola_Microsoft.Winget.Source_8wekyb3d8bbwe', 'zola.exe');
         if (fs.existsSync(wingetPath)) zolaExe = `"${wingetPath}"`;
     }
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
     const commande = `${zolaExe} build --output-dir "${dossierSortie}"`;
 
     exec(commande, { cwd: currentProjectDir }, (error, stdout, stderr) => {
         btn.innerText = oldText;
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
         if (error) {
             console.error("Erreur Build :", error);
             alert(`Erreur lors de la génération :\n${stderr || error.message}`);
             return;
         }
+<<<<<<< Updated upstream
         const reponse = confirm(`✅ Site généré dans :\n${dossierSortie}\n\nVoulez-vous ouvrir le dossier ?`);
         if (reponse) shell.openPath(dossierSortie);
+=======
+
+        const reponse = confirm(`✅ Site généré dans :\n${dossierSortie}\n\nVoulez-vous ouvrir le dossier ?`);
+        if (reponse) {
+            shell.openPath(dossierSortie);
+        }
+>>>>>>> Stashed changes
     });
 }

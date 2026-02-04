@@ -1,3 +1,7 @@
 node_modules
+<<<<<<< Updated upstream
 rendu_genere/*
 package-lock.json
+=======
+rendu_genere/*
+>>>>>>> Stashed changes
