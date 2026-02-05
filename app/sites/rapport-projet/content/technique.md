@@ -53,7 +53,7 @@ template: "page.html"
 
 <div class="split-layout reverse-mobile">
     <div>
-        <img src="/images/schema-electron.png" alt="Architecture Electron" class="shadow-img">
+        <img src="/projet-tutore/images/schema-electron.png" alt="Architecture Electron" class="shadow-img">
     </div>
     <div>
         <h2>2. L'Application : Electron</h2>
@@ -92,7 +92,7 @@ template: "page.html"
 <div style="text-align:center; background-color: #f8f9fa; padding: 40px; border-radius: 8px; border: 1px solid #e9ecef; margin-top: 40px;">
     <h2 style="margin-top: 0; color: #2c3e50;">📥 Ressources Annexes</h2>
     <p style="margin-bottom: 25px;">Vous souhaitez consulter le rapport détaillé du projet ou les spécifications techniques complètes ?</p>
-    <a href="/documents/rapport_technique.pdf" download style="background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; transition: background 0.3s;">
+    <a href="/projet-tutore/documents/rapport_technique.pdf" download style="background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; transition: background 0.3s;">
         📄 Télécharger le Rapport (.docx)
     </a>
 </div>
