@@ -59,7 +59,7 @@ template: "page.html"
         <h2>2. L'Application : Electron</h2>
         <p>L'architecture repose sur le modèle <strong>Main / Renderer</strong> d'Electron :</p>
         <ul>
-            <li><strong>Le Renderer (Interface) :</strong> C'est la partie visible (HTML/Vue.js). Elle gère les formulaires et l'affichage.</li>
+            <li><strong>Le Renderer (Interface) :</strong> C'est la partie visible (HTML/JavaScript). Elle gère les formulaires et l'affichage via manipulation directe du DOM.</li>
             <li><strong>Le Main Process (Node.js) :</strong> C'est la partie "système". Elle a le droit de lire et écrire sur le disque dur de l'utilisateur pour modifier les fichiers <code>.md</code>.</li>
         </ul>
     </div>
@@ -72,17 +72,17 @@ template: "page.html"
 <div class="grid-3">
     <div class="card">
         <div class="tech-icon">⚛️</div> 
-        <h3>Electron</h3>
+        <h3>Electron.js</h3>
         <p>Framework d'application de bureau. Gère le cycle de vie de l'application et l'accès au système de fichiers (File System).</p>
     </div>
     <div class="card">
         <div class="tech-icon">🎨</div> 
-        <h3>Vue.js / HTML5</h3>
+        <h3>JS / HTML5</h3>
         <p>Interface Utilisateur (GUI). Génération dynamique des formulaires et prévisualisation du Markdown.</p>
     </div>
     <div class="card">
         <div class="tech-icon">⚡</div> 
-        <h3>Binaire Zola</h3>
+        <h3>Zola</h3>
         <p>Moteur externe exécuté par l'application pour construire le site (Build) et valider la configuration.</p>
     </div>
 </div>
