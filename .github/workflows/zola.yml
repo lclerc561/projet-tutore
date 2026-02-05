@@ -7,6 +7,11 @@ on:
       - 'feature/**'
   workflow_dispatch:
 
+# --- AJOUT INDISPENSABLE ---
+permissions:
+  contents: write
+# ---------------------------
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,7 +23,6 @@ jobs:
         uses: shalzz/zola-deploy-action@v0.19.2
         env:
           PAGES_BRANCH: gh-pages
-          # C'est ici qu'on indique le chemin vers votre dossier Zola
           BUILD_DIR: app/sites/rapport-projet
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # VERSION: 0.19.1
