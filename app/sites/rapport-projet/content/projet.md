@@ -11,7 +11,7 @@ date: 2026-02-02
         <p>Notre but est de fournir une interface graphique (GUI) locale permettant de modifier et gérer un site Zola existant <strong>sans toucher au code</strong>.</p>
     </div>
     <div>
-        <img src="/images/code.jpg" alt="Illustration du contexte" class="shadow-img">
+        <img src="/projet-tutore/images/code.jpg" alt="Illustration du contexte" class="shadow-img">
     </div>
 </div>
 

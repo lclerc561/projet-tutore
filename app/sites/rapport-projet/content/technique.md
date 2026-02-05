@@ -32,19 +32,19 @@ template: "page.html"
     <div class="video-card">
         <h3>1. Ajouter un thème</h3>
         <video controls poster="/images/poster-video1.jpg">
-            <source src="/videos/video1.mp4" type="video/mp4">
+            <source src="/projet-tutore/videos/video1.mp4" type="video/mp4">
         </video>
     </div>
     <div class="video-card">
         <h3>2. Créer un site</h3>
         <video controls>
-            <source src="/videos/video2.mp4" type="video/mp4">
+            <source src="/projet-tutore/videos/video2.mp4" type="video/mp4">
         </video>
     </div>
     <div class="video-card">
         <h3>3. Modifier un site</h3>
         <video controls>
-            <source src="/videos/video3.mp4" type="video/mp4">
+            <source src="/projet-tutore/videos/video3.mp4" type="video/mp4">
         </video>
     </div>
 </div>
