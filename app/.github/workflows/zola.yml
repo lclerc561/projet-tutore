@@ -3,8 +3,9 @@ name: Zola Build and Deploy
 on:
   push:
     branches:
-      - feature/changement-image-et-video
-    
+      - main
+      - 'feature/**'
+  workflow_dispatch:
 
 jobs:
   build:
