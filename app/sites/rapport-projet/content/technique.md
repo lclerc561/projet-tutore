@@ -20,7 +20,7 @@ template: "page.html"
         </ul>
     </div>
     <div>
-        <img src="/images/schema-zola.png" alt="Schéma fonctionnement Zola" class="shadow-img">
+        <img src="/projet-tutore/images/schema-zola.png" alt="Schéma fonctionnement Zola" class="shadow-img">
     </div>
 </div>
 
@@ -31,7 +31,7 @@ template: "page.html"
 <div class="video-grid">
     <div class="video-card">
         <h3>1. Ajouter un thème</h3>
-        <video controls poster="/images/poster-video1.jpg">
+        <video controls poster="/projet-tutore/images/poster-video1.jpg">
             <source src="/projet-tutore/videos/video1.mp4" type="video/mp4">
         </video>
     </div>
