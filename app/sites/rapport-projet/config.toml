@@ -1,4 +1,4 @@
-base_url = "https://github.com/lclerc561/projet-tutore/tree/feature/changement-image-et-video"
+base_url = "https://projet-tutore112.github.io/projet-tutore"
 title = "Mon Site Zola GUI"
 compile_sass = true
 build_search_index = false
