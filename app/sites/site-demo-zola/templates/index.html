@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>
+        {% if page.title %} {{ page.title }} {% else %} {{ config.title }} {% endif %}
+    </title>
+    <style>
+        body { font-family: sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        header { background: #f4f4f4; padding: 15px; margin-bottom: 30px; border-radius: 8px; border-bottom: 2px solid #ddd; }
+        h1 { margin: 0; color: #333; }
+        nav { margin-top: 10px; }
+        nav a { margin-right: 15px; text-decoration: none; color: #007bff; font-weight: bold; }
+        nav a:hover { text-decoration: underline; }
+        
+        blockquote { border-left: 4px solid #ccc; margin: 0; padding-left: 15px; color: #666; font-style: italic; }
+        code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 30px 0; }
+
+        /* AJOUT CSS POUR LA VIDÉO */
+        video {
+            max-width: 100%; /* La vidéo s'adapte à l'écran */
+            border-radius: 8px; /* Coins arrondis */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Petite ombre */
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>{{ config.title }}</h1>
+        <nav>
+            <a href="{{ get_url(path="@/_index.md") }}">🏠 Accueil</a>
+            <a href="{{ get_url(path="@/super-article.md") }}">📄 Mon Article</a>
+        </nav>
+    </header>
+
+<main>
+        {% if page %}
+            <h2>{{ page.title }}</h2>
+            <small>Publié le {{ page.date }}</small>
+            <hr>
+
+            {% if page.extra.hero_image %}
+                <div style="text-align:center; margin-bottom:20px;">
+                    <img src="{{ page.extra.hero_image }}" alt="Image de couverture" style="max-width:100%; border-radius:8px;">
+                </div>
+            {% endif %}
+
+            {% if page.extra.demo_video %}
+                <div style="text-align:center;">
+                    <video controls>
+                        <source src="{{ page.extra.demo_video }}" type="video/mp4">
+                        Votre navigateur ne supporte pas la balise vidéo.
+                    </video>
+                </div>
+            {% endif %}
+
+            {{ page.content | safe }}
+
+        {% elif section %}
+            {{ section.content | safe }}
+            
+            <hr>
+            <h3>📌 Articles récents :</h3>
+            <ul>
+            {% for p in section.pages %}
+                <li><a href="{{ p.permalink }}">{{ p.title }}</a></li>
+            {% endfor %}
+            </ul>
+
+        {% endif %}
+        
+    </main>
+
+</body>
+</html>

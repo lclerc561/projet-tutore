@@ -1,4 +1,4 @@
-base_url = "http://127.0.0.1:1111"
+base_url = "https://projet-tutore112.github.io/projet-tutore"
 title = "Mon Site Zola GUI"
 compile_sass = true
 build_search_index = false
