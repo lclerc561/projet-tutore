@@ -13,10 +13,17 @@
         nav a { margin-right: 15px; text-decoration: none; color: #007bff; font-weight: bold; }
         nav a:hover { text-decoration: underline; }
         
-        /* Pour que les citations et le code soient jolis */
         blockquote { border-left: 4px solid #ccc; margin: 0; padding-left: 15px; color: #666; font-style: italic; }
         code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
         hr { border: 0; border-top: 1px solid #eee; margin: 30px 0; }
+
+        /* AJOUT CSS POUR LA VIDÉO */
+        video {
+            max-width: 100%; /* La vidéo s'adapte à l'écran */
+            border-radius: 8px; /* Coins arrondis */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Petite ombre */
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -29,11 +36,27 @@
         </nav>
     </header>
 
-    <main>
+<main>
         {% if page %}
             <h2>{{ page.title }}</h2>
             <small>Publié le {{ page.date }}</small>
             <hr>
+
+            {% if page.extra.hero_image %}
+                <div style="text-align:center; margin-bottom:20px;">
+                    <img src="{{ page.extra.hero_image }}" alt="Image de couverture" style="max-width:100%; border-radius:8px;">
+                </div>
+            {% endif %}
+
+            {% if page.extra.demo_video %}
+                <div style="text-align:center;">
+                    <video controls>
+                        <source src="{{ page.extra.demo_video }}" type="video/mp4">
+                        Votre navigateur ne supporte pas la balise vidéo.
+                    </video>
+                </div>
+            {% endif %}
+
             {{ page.content | safe }}
 
         {% elif section %}

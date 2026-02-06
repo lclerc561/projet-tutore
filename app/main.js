@@ -25,6 +25,36 @@ function createWindow() {
     });
 }
 
+ipcMain.handle('dialog:openImage', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [
+            { name: 'Images', extensions: ['jpg', 'png', 'gif', 'webp', 'jpeg', 'svg'] }
+        ]
+    });
+    
+    if (canceled) {
+        return null;
+    } else {
+        return filePaths[0]; // Renvoie le chemin complet de l'image choisie
+    }
+});
+
+ipcMain.handle('dialog:openVideo', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        properties: ['openFile'],
+        filters: [
+            { name: 'Vidéos', extensions: ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'] }
+        ]
+    });
+    
+    if (canceled) {
+        return null;
+    } else {
+        return filePaths[0];
+    }
+});
+
 app.whenReady().then(createWindow);
 
 //Charger un site
