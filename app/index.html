@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <title>Zola CMS - Éditeur Desktop</title>
@@ -65,13 +66,26 @@
             gap: 20px;
         }
 
-        h2 { margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        h2 {
+            margin-top: 0;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
 
         /* Styles des formulaires générés par JS */
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em; }
-        .form-group input[type="text"], 
-        .form-group textarea, 
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea,
         .form-group select {
             width: 100%;
             padding: 10px;
@@ -80,7 +94,11 @@
             box-sizing: border-box;
             font-family: inherit;
         }
-        .form-group textarea { height: 150px; resize: vertical; }
+
+        .form-group textarea {
+            height: 150px;
+            resize: vertical;
+        }
 
         /* BOUTONS */
         .btn {
@@ -92,13 +110,41 @@
             transition: opacity 0.2s;
             text-align: center;
         }
-        .btn:hover { opacity: 0.9; }
 
-        .btn-primary { background-color: #3498db; color: white; } /* Bleu */
-        .btn-success { background-color: #27ae60; color: white; } /* Vert */
-        .btn-danger { background-color: #e74c3c; color: white; } /* Rouge */
-        .btn-warning { background-color: #f39c12; color: white; } /* Orange */
-        .btn-purple { background-color: #8e44ad; color: white; } /* Violet */
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        /* Bleu */
+        .btn-success {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        /* Vert */
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        /* Rouge */
+        .btn-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        /* Orange */
+        .btn-purple {
+            background-color: #8e44ad;
+            color: white;
+        }
+
+        /* Violet */
 
         /* Messages de statut (Succès/Erreur) */
         #status-message {
@@ -106,55 +152,65 @@
             border-radius: 5px;
             font-weight: bold;
             text-align: center;
-            display: none; /* Caché par défaut */
+            display: none;
+            /* Caché par défaut */
         }
 
         /* FENÊTRE MODALE (Prompt) */
         #custom-prompt {
-            display: none; /* Caché par défaut */
+            display: none;
+            /* Caché par défaut */
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
             z-index: 1000;
             justify-content: center;
             align-items: center;
         }
-        #custom-prompt.visible { display: flex; }
-        
+
+        #custom-prompt.visible {
+            display: flex;
+        }
+
         .modal-content {
             background: white;
             padding: 20px;
             border-radius: 8px;
             width: 350px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
     </style>
 </head>
+
 <body>
 
     <div id="sidebar">
         <div class="sidebar-header">
             <h3>CMS Zola</h3>
         </div>
-        
+
         <div class="sidebar-actions">
             <button class="btn btn-primary" onclick="choisirDossier()">📂 Ouvrir Dossier</button>
             <button class="btn btn-purple" onclick="genererSite()">🔨 Générer le site (Export)</button>
         </div>
 
         <div id="file-list">
-            </div>
+        </div>
     </div>
 
     <div id="editor">
-        
+
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h2>Éditeur</h2>
-            
+
             <div>
-                <button id="btn-launch" class="btn btn-warning" onclick="lancerZola()">▶️ Prévisualiser (Serveur)</button>
-                <button id="btn-stop" class="btn btn-danger" onclick="arreterZola()" style="display: none;">wq Arrêter le serveur</button>
+                <button id="btn-launch" class="btn btn-warning" onclick="lancerZola()">▶️ Prévisualiser
+                    (Serveur)</button>
+                <button id="btn-stop" class="btn btn-danger" onclick="arreterZola()" style="display: none;">wq Arrêter
+                    le serveur</button>
             </div>
         </div>
 
@@ -173,9 +229,10 @@
         <div class="modal-content">
             <h3 style="margin-top: 0;">Nom de l'export</h3>
             <p>Entrez le nom du dossier de sortie :</p>
-            
-            <input type="text" id="prompt-input" placeholder="ex: version-finale-1" style="width: 100%; margin-bottom: 15px; padding: 10px;">
-            
+
+            <input type="text" id="prompt-input" placeholder="ex: version-finale-1"
+                style="width: 100%; margin-bottom: 15px; padding: 10px;">
+
             <div style="text-align: right; display: flex; gap: 10px; justify-content: flex-end;">
                 <button onclick="fermerPrompt()" class="btn" style="background: #ccc;">Annuler</button>
                 <button onclick="confirmerGeneration()" class="btn btn-success">Valider</button>
@@ -183,6 +240,9 @@
         </div>
     </div>
 
-    <script src="renderer.js"></script>
+    <script>
+        require('./renderer/renderer.js');
+    </script>
 </body>
+
 </html>

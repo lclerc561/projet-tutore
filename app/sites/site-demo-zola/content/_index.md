@@ -4,7 +4,7 @@ sort_by = "date"
 template = "index.html"
 +++
 
-# Bonjourrr !
+# Bonjour !
 
 Ceci est un site de **test ultra simple**.
 
