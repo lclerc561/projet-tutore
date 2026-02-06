@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+    <title>Mon Site Zola GUI</title>
+    <link rel="self" type="application/atom+xml" href="https://projet-tutore112.github.io/projet-tutore/atom.xml"/>
+    <link rel="alternate" type="text/html" href="https://projet-tutore112.github.io/projet-tutore"/>
+    <generator uri="https://www.getzola.org/">Zola</generator>
+    <updated>2026-02-02T00:00:00+00:00</updated>
+    <id>https://projet-tutore112.github.io/projet-tutore/atom.xml</id>
+    <entry xml:lang="en">
+        <title>Le Projet</title>
+        <published>2026-02-02T00:00:00+00:00</published>
+        <updated>2026-02-02T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://projet-tutore112.github.io/projet-tutore/projet/"/>
+        <id>https://projet-tutore112.github.io/projet-tutore/projet/</id>
+        
+        <content type="html" xml:base="https://projet-tutore112.github.io/projet-tutore/projet/">&lt;div class=&quot;split-layout&quot;&gt;
+    &lt;div&gt;
+        &lt;h2&gt;Contexte &amp; Objectifs&lt;&#x2F;h2&gt;
+        &lt;h3&gt;Éditeur de Bureau pour Sites Statiques Zola.&lt;&#x2F;h3&gt;
+        &lt;p&gt;Notre but est de fournir une interface graphique (GUI) locale permettant de modifier et gérer un site Zola existant &lt;strong&gt;sans toucher au code&lt;&#x2F;strong&gt;.&lt;&#x2F;p&gt;
+    &lt;&#x2F;div&gt;
+    &lt;div&gt;
+        &lt;img src=&quot;&#x2F;projet-tutore&#x2F;images&#x2F;code.jpg&quot; alt=&quot;Illustration du contexte&quot; class=&quot;shadow-img&quot;&gt;
+    &lt;&#x2F;div&gt;
+&lt;&#x2F;div&gt;
+&lt;hr class=&quot;spacer&quot;&gt;
+&lt;div style=&quot;max-width: 800px; margin: 0 auto;&quot;&gt;
+    &lt;h2&gt;Notre Mission&lt;&#x2F;h2&gt;
+    &lt;ul class=&quot;mission-list&quot;&gt;
+        &lt;li&gt;Masquer la complexité technique.&lt;&#x2F;li&gt;
+        &lt;li&gt;Automatiser la création des contenus et dossiers.&lt;&#x2F;li&gt;
+        &lt;li&gt;Permettre la génération du site en un clic.&lt;&#x2F;li&gt;
+        &lt;li&gt;Rendre Zola accessible à tout public.&lt;&#x2F;li&gt;
+    &lt;&#x2F;ul&gt;
+&lt;&#x2F;div&gt;
+&lt;hr class=&quot;spacer&quot;&gt;
+&lt;h2 style=&quot;text-align:center; margin-bottom:30px;&quot;&gt;Les Rôles&lt;&#x2F;h2&gt;
+    &lt;div class=&quot;card role-card user-style&quot;&gt;
+        &lt;div style=&quot;text-align: left; margin-top: 15px;&quot;&gt;
+            &lt;strong&gt;Actions clés :&lt;&#x2F;strong&gt;
+            &lt;ul&gt;
+                &lt;li&gt;Créer une page via formulaire.&lt;&#x2F;li&gt;
+                &lt;li&gt;Ajouter des images (Drag &amp; Drop).&lt;&#x2F;li&gt;
+                &lt;li&gt;Prévisualiser en temps réel.&lt;&#x2F;li&gt;
+                &lt;li&gt;Installer des thèmes.&lt;&#x2F;li&gt;
+                &lt;li&gt;Modifier les templates HTML&#x2F;Tera.&lt;&#x2F;li&gt;
+                &lt;li&gt;Configurer le déploiement (Git&#x2F;Netlify).&lt;&#x2F;li&gt;
+            &lt;&#x2F;ul&gt;
+        &lt;&#x2F;div&gt;
+    &lt;&#x2F;div&gt;
+&lt;div class=&quot;highlight-box&quot;&gt;
+    &lt;h3&gt;Intelligence du système&lt;&#x2F;h3&gt;
+    &lt;p&gt;L&#x27;interface est dynamique : elle analyse la configuration du site (fichiers &lt;code&gt;.yaml&lt;&#x2F;code&gt;) et génère automatiquement les formulaires adaptés à la structure du contenu.&lt;&#x2F;p&gt;
+&lt;&#x2F;div&gt;
+&lt;hr class=&quot;spacer&quot;&gt;
+&lt;h2 style=&quot;text-align:center;&quot;&gt;Périmètre Fonctionnel&lt;&#x2F;h2&gt;
+&lt;div class=&quot;grid-3&quot;&gt;
+    &lt;div class=&quot;card&quot;&gt;
+        &lt;h3&gt;Édition&lt;&#x2F;h3&gt;
+        &lt;p&gt;Formulaires intelligents, conversion automatique en Markdown, gestion des médias (images&#x2F;vidéos).&lt;&#x2F;p&gt;
+    &lt;&#x2F;div&gt;
+    &lt;div class=&quot;card&quot;&gt;
+        &lt;h3&gt;Déploiement&lt;&#x2F;h3&gt;
+        &lt;p&gt;Génération du site statique (Build), visualisation locale, export vers le serveur de production.&lt;&#x2F;p&gt;
+    &lt;&#x2F;div&gt;
+    &lt;div class=&quot;card&quot;&gt;
+        &lt;h3&gt;Personnalisation&lt;&#x2F;h3&gt;
+        &lt;p&gt;Sélecteur de thèmes graphiques, choix des couleurs et polices, agencement des sections.&lt;&#x2F;p&gt;
+    &lt;&#x2F;div&gt;
+&lt;&#x2F;div&gt;</content>
+        
+    </entry>
+    <entry xml:lang="en">
+        <title>Documentation Technique</title>
+        <published>2026-02-02T00:00:00+00:00</published>
+        <updated>2026-02-02T00:00:00+00:00</updated>
+        
+        <author>
+          <name>
+            
+              Unknown
+            
+          </name>
+        </author>
+        
+        <link rel="alternate" type="text/html" href="https://projet-tutore112.github.io/projet-tutore/technique/"/>
+        <id>https://projet-tutore112.github.io/projet-tutore/technique/</id>
+        
+        <content type="html" xml:base="https://projet-tutore112.github.io/projet-tutore/technique/">&lt;p class=&quot;lead&quot;&gt;L&#x27;application est une solution de bureau (Desktop) développée avec &lt;strong&gt;Electron.js&lt;&#x2F;strong&gt;. Elle permet de piloter le moteur Zola localement, sans nécessiter de serveur complexe ou de base de données.&lt;&#x2F;p&gt;
+&lt;hr class=&quot;spacer&quot;&gt;
+&lt;div class=&quot;split-layout&quot;&gt;
+    &lt;div&gt;
+        &lt;h2&gt;1. Le Moteur : Zola&lt;&#x2F;h2&gt;
+        &lt;p&gt;Zola est un générateur de site statique (SSG) écrit en Rust. C&#x27;est le cœur du système que notre application pilote.&lt;&#x2F;p&gt;
+        &lt;p&gt;&lt;strong&gt;Son fonctionnement est linéaire :&lt;&#x2F;strong&gt;&lt;&#x2F;p&gt;
+        &lt;ul&gt;
+            &lt;li&gt;&lt;strong&gt;Entrée :&lt;&#x2F;strong&gt; Des fichiers Markdown (contenu), des fichiers YAML et des templates HTML.&lt;&#x2F;li&gt;
+            &lt;li&gt;&lt;strong&gt;Traitement :&lt;&#x2F;strong&gt; Compilation ultra-rapide.&lt;&#x2F;li&gt;
+            &lt;li&gt;&lt;strong&gt;Sortie :&lt;&#x2F;strong&gt; Un dossier &lt;code&gt;public&#x2F;&lt;&#x2F;code&gt; contenant le site Web final (HTML&#x2F;CSS&#x2F;JS).&lt;&#x2F;li&gt;
+        &lt;&#x2F;ul&gt;
+    &lt;&#x2F;div&gt;
+    &lt;div&gt;
+        &lt;img src=&quot;&#x2F;projet-tutore&#x2F;images&#x2F;schema-zola.png&quot; alt=&quot;Schéma fonctionnement Zola&quot; class=&quot;shadow-img&quot;&gt;
+    &lt;&#x2F;div&gt;
+&lt;&#x2F;div&gt;
+&lt;hr class=&quot;spacer&quot;&gt;
+&lt;h2 style=&quot;text-align:center; margin-bottom: 30px;&quot;&gt;Démonstrations&lt;&#x2F;h2&gt;
+&lt;div class=&quot;video-grid&quot;&gt;
+    &lt;div class=&quot;video-card&quot;&gt;
+        &lt;h3&gt;1. Ajouter un thème&lt;&#x2F;h3&gt;
+        &lt;video controls poster=&quot;&#x2F;projet-tutore&#x2F;images&#x2F;poster-video1.jpg&quot;&gt;
+            &lt;source src=&quot;&#x2F;projet-tutore&#x2F;videos&#x2F;video1.mp4&quot; type=&quot;video&#x2F;mp4&quot;&gt;
+        &lt;&#x2F;video&gt;
+    &lt;&#x2F;div&gt;
+    &lt;div class=&quot;video-card&quot;&gt;
+        &lt;h3&gt;2. Créer un site&lt;&#x2F;h3&gt;
+        &lt;video controls&gt;
+            &lt;source src=&quot;&#x2F;projet-tutore&#x2F;videos&#x2F;video2.mp4&quot; type=&quot;video&#x2F;mp4&quot;&gt;
+        &lt;&#x2F;video&gt;
+    &lt;&#x2F;div&gt;
+    &lt;div class=&quot;video-card&quot;&gt;
+        &lt;h3&gt;3. Modifier un site&lt;&#x2F;h3&gt;
+        &lt;video controls&gt;
+            &lt;source src=&quot;&#x2F;projet-tutore&#x2F;videos&#x2F;video3.mp4&quot; type=&quot;video&#x2F;mp4&quot;&gt;
+        &lt;&#x2F;video&gt;
+    &lt;&#x2F;div&gt;
+&lt;&#x2F;div&gt;
+&lt;hr class=&quot;spacer&quot;&gt;
+&lt;div class=&quot;split-layout reverse-mobile&quot;&gt;
+    &lt;div&gt;
+        &lt;img src=&quot;&#x2F;projet-tutore&#x2F;images&#x2F;schema-electron.png&quot; alt=&quot;Architecture Electron&quot; class=&quot;shadow-img&quot;&gt;
+    &lt;&#x2F;div&gt;
+    &lt;div&gt;
+        &lt;h2&gt;2. L&#x27;Application : Electron&lt;&#x2F;h2&gt;
+        &lt;p&gt;L&#x27;architecture repose sur le modèle &lt;strong&gt;Main &#x2F; Renderer&lt;&#x2F;strong&gt; d&#x27;Electron :&lt;&#x2F;p&gt;
+        &lt;ul&gt;
+            &lt;li&gt;&lt;strong&gt;Le Renderer (Interface) :&lt;&#x2F;strong&gt; C&#x27;est la partie visible (HTML&#x2F;JavaScript). Elle gère les formulaires et l&#x27;affichage via manipulation directe du DOM.&lt;&#x2F;li&gt;
+            &lt;li&gt;&lt;strong&gt;Le Main Process (Node.js) :&lt;&#x2F;strong&gt; C&#x27;est la partie &quot;système&quot;. Elle a le droit de lire et écrire sur le disque dur de l&#x27;utilisateur pour modifier les fichiers &lt;code&gt;.md&lt;&#x2F;code&gt;.&lt;&#x2F;li&gt;
+        &lt;&#x2F;ul&gt;
+    &lt;&#x2F;div&gt;
+&lt;&#x2F;div&gt;
+&lt;hr class=&quot;spacer&quot;&gt;
+&lt;h2 style=&quot;text-align:center; margin-bottom: 30px;&quot;&gt;Technologies utilisées&lt;&#x2F;h2&gt;
+&lt;div class=&quot;grid-3&quot;&gt;
+    &lt;div class=&quot;card&quot;&gt;
+        &lt;div class=&quot;tech-icon&quot;&gt;⚛️&lt;&#x2F;div&gt; 
+        &lt;h3&gt;Electron.js&lt;&#x2F;h3&gt;
+        &lt;p&gt;Framework d&#x27;application de bureau. Gère le cycle de vie de l&#x27;application et l&#x27;accès au système de fichiers (File System).&lt;&#x2F;p&gt;
+    &lt;&#x2F;div&gt;
+    &lt;div class=&quot;card&quot;&gt;
+        &lt;div class=&quot;tech-icon&quot;&gt;🎨&lt;&#x2F;div&gt; 
+        &lt;h3&gt;JS &#x2F; HTML5&lt;&#x2F;h3&gt;
+        &lt;p&gt;Interface Utilisateur (GUI). Génération dynamique des formulaires et prévisualisation du Markdown.&lt;&#x2F;p&gt;
+    &lt;&#x2F;div&gt;
+    &lt;div class=&quot;card&quot;&gt;
+        &lt;div class=&quot;tech-icon&quot;&gt;⚡&lt;&#x2F;div&gt; 
+        &lt;h3&gt;Zola&lt;&#x2F;h3&gt;
+        &lt;p&gt;Moteur externe exécuté par l&#x27;application pour construire le site (Build) et valider la configuration.&lt;&#x2F;p&gt;
+    &lt;&#x2F;div&gt;
+&lt;&#x2F;div&gt;
+&lt;hr class=&quot;spacer&quot;&gt;
+&lt;div style=&quot;text-align:center; background-color: #f8f9fa; padding: 40px; border-radius: 8px; border: 1px solid #e9ecef; margin-top: 40px;&quot;&gt;
+    &lt;h2 style=&quot;margin-top: 0; color: #2c3e50;&quot;&gt;📥 Ressources Annexes&lt;&#x2F;h2&gt;
+    &lt;p style=&quot;margin-bottom: 25px;&quot;&gt;Vous souhaitez consulter le rapport détaillé du projet ou les spécifications techniques complètes ?&lt;&#x2F;p&gt;
+    &lt;a href=&quot;&#x2F;projet-tutore&#x2F;documents&#x2F;rapport_technique.pdf&quot; download style=&quot;background-color: #007bff; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; transition: background 0.3s;&quot;&gt;
+        📄 Télécharger le Rapport (.docx)
+    &lt;&#x2F;a&gt;
+&lt;&#x2F;div&gt;</content>
+        
+    </entry>
+</feed>
