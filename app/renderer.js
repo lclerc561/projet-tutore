@@ -6,11 +6,20 @@ const { ipcRenderer, shell } = require('electron');
 const { exec } = require('child_process');
 const { validerFormulaire } = require('./validators.js');
 
+// Import des fonctions AST (Assurez-vous que le fichier markdownAst.js existe !)
+const {
+    parseMarkdownToAst,
+    astToMarkdown,
+    insertHeadingAst,
+    insertParagraphAst
+} = require('./markdownAst');
+
 let currentProjectDir = null;
 let currentFilePath = null;
 let processusZola = null;
 let arretVolontaire = false;
 let formatActuel = 'yaml'; // Pour se souvenir si c'était +++ ou ---
+let currentAst = null; // Pour stocker l'AST du markdown
 
 // --- FIX FOCUS ---
 window.addEventListener('click', () => {
@@ -82,19 +91,16 @@ function ouvrirFichier(chemin) {
 
     let parsed;
 
-    // DÉTECTION INTELLIGENTE
+    // DÉTECTION INTELLIGENTE (TOML vs YAML)
     if (contenuBrut.trim().startsWith('+++')) {
-        // C'est du TOML (Zola par défaut)
         console.log("Format détecté : TOML (+++)");
         formatActuel = 'toml';
-        
         parsed = matter(contenuBrut, {
             engines: { toml: toml.parse.bind(toml) },
             language: 'toml',
             delimiters: '+++'
         });
     } else {
-        // C'est du YAML (Standard Markdown)
         console.log("Format détecté : YAML (---)");
         formatActuel = 'yaml';
         parsed = matter(contenuBrut);
@@ -103,7 +109,7 @@ function ouvrirFichier(chemin) {
     genererFormulaire(parsed.data, parsed.content);
 }
 
-// --- FONCTION D'IMPORT D'IMAGE ---
+// --- FONCTIONS IMPORT MEDIA ---
 async function importerImage(inputId, imgPreviewId) {
     if (!currentProjectDir) return;
     const cheminSource = await ipcRenderer.invoke('dialog:openImage');
@@ -131,10 +137,8 @@ async function importerImage(inputId, imgPreviewId) {
     }
 }
 
-// --- FONCTION D'IMPORT DE VIDÉO ---
 async function importerVideo(inputId, vidPreviewId) {
     if (!currentProjectDir) return;
-
     const cheminSource = await ipcRenderer.invoke('dialog:openVideo');
     if (!cheminSource) return;
 
@@ -166,6 +170,7 @@ function genererFormulaire(frontMatter, markdownContent) {
     container.innerHTML = '';
     const schema = [];
 
+    // Fonction interne pour créer les champs
     function creerChamp(key, valeur, context) {
         const wrapper = document.createElement('div');
         wrapper.className = 'form-group';
@@ -177,22 +182,18 @@ function genererFormulaire(frontMatter, markdownContent) {
 
         const inputId = `field-${context}-${key}`;
         const previewId = `preview-${context}-${key}`;
-
-        // --- DÉTECTION TYPE ---
         const lowerKey = key.toLowerCase();
         
-        // 1. Est-ce une IMAGE ?
+        // Détection Image/Vidéo
         const isImageField = lowerKey.match(/image|img|icon|logo|cover|hero/) || 
                              (typeof valeur === 'string' && valeur.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i));
-
-        // 2. Est-ce une VIDÉO ?
         const isVideoField = lowerKey.match(/video|vid|movie/) || 
                              (typeof valeur === 'string' && valeur.match(/\.(mp4|webm|ogg|mov|mkv)$/i));
 
         let input;
 
         if (isVideoField) {
-            // === C'EST UNE VIDÉO ===
+            // ... (Code Vidéo identique à avant) ...
             const vidContainer = document.createElement('div');
             vidContainer.style.border = '1px dashed #ccc';
             vidContainer.style.padding = '10px';
@@ -209,9 +210,7 @@ function genererFormulaire(frontMatter, markdownContent) {
 
             if (valeur && typeof valeur === 'string') {
                 let cheminLocal = valeur;
-                if (valeur.startsWith('/')) {
-                    cheminLocal = path.join(currentProjectDir, 'static', valeur);
-                }
+                if (valeur.startsWith('/')) cheminLocal = path.join(currentProjectDir, 'static', valeur);
                 if (fs.existsSync(cheminLocal)) {
                     videoPreview.src = `file://${cheminLocal}`;
                     videoPreview.style.display = 'block';
@@ -234,17 +233,12 @@ function genererFormulaire(frontMatter, markdownContent) {
             btnImport.style.color = 'white';
             btnImport.style.border = 'none';
             btnImport.style.borderRadius = '3px';
-            
-            btnImport.onclick = (e) => {
-                e.preventDefault();
-                importerVideo(inputId, previewId);
-            };
-
+            btnImport.onclick = (e) => { e.preventDefault(); importerVideo(inputId, previewId); };
             vidContainer.appendChild(btnImport);
             wrapper.appendChild(vidContainer);
 
         } else if (isImageField) {
-            // === C'EST UNE IMAGE ===
+            // ... (Code Image identique à avant) ...
             const imgContainer = document.createElement('div');
             imgContainer.style.border = '1px dashed #ccc';
             imgContainer.style.padding = '10px';
@@ -260,9 +254,7 @@ function genererFormulaire(frontMatter, markdownContent) {
 
             if (valeur && typeof valeur === 'string') {
                 let cheminLocal = valeur;
-                if (valeur.startsWith('/')) {
-                    cheminLocal = path.join(currentProjectDir, 'static', valeur);
-                }
+                if (valeur.startsWith('/')) cheminLocal = path.join(currentProjectDir, 'static', valeur);
                 if (fs.existsSync(cheminLocal)) {
                     imgPreview.src = `file://${cheminLocal}`;
                     imgPreview.style.display = 'block';
@@ -285,33 +277,21 @@ function genererFormulaire(frontMatter, markdownContent) {
             btnImport.style.color = 'white';
             btnImport.style.border = 'none';
             btnImport.style.borderRadius = '3px';
-            
-            btnImport.onclick = (e) => {
-                e.preventDefault();
-                importerImage(inputId, previewId);
-            };
-
+            btnImport.onclick = (e) => { e.preventDefault(); importerImage(inputId, previewId); };
             imgContainer.appendChild(btnImport);
             wrapper.appendChild(imgContainer);
 
         } else if (typeof valeur === 'boolean') {
-            // Gestion des booléens
             input = document.createElement('input');
             input.type = 'checkbox';
             input.checked = valeur;
             input.id = inputId;
             wrapper.appendChild(input);
         } else {
-            // Gestion des champs texte et nombres
             input = document.createElement('input');
             input.type = 'text';
-            
             if (valeur instanceof Date) {
-                try {
-                    input.value = valeur.toISOString().split('T')[0];
-                } catch (e) {
-                    input.value = String(valeur);
-                }
+                try { input.value = valeur.toISOString().split('T')[0]; } catch (e) { input.value = String(valeur); }
             } else if (Array.isArray(valeur)) {
                 input.value = valeur.join(', ');
             } else {
@@ -325,38 +305,91 @@ function genererFormulaire(frontMatter, markdownContent) {
         schema.push({ key: key, context: context });
     }
 
-    // Boucle principale
+    // Génération des champs
     for (const key in frontMatter) {
         const value = frontMatter[key];
-        // Support récursif pour [extra]
         if (key === 'extra' && typeof value === 'object' && value !== null) {
-            for (const subKey in value) {
-                creerChamp(subKey, value[subKey], 'extra');
-            }
+            for (const subKey in value) creerChamp(subKey, value[subKey], 'extra');
         } else if (value !== null) {
             creerChamp(key, value, 'root');
         }
     }
     
-    const premierChamp = container.querySelector('input, textarea');
-    if (premierChamp) setTimeout(() => premierChamp.focus(), 50);
-
     container.dataset.schema = JSON.stringify(schema);
 
-    // Ajout de la zone de contenu (Markdown)
+    // --- ZONE AST / ÉDITION CONTENU (NOUVEAU) ---
+    
+    // Initialisation de l'AST
+    try {
+        currentAst = parseMarkdownToAst(markdownContent);
+    } catch(e) {
+        console.warn("Markdown AST parsing failed, falling back to raw string", e);
+    }
+
+    // Bloc ajout TITRES
+    const headingWrapper = document.createElement('div');
+    headingWrapper.className = 'form-group';
+    headingWrapper.style.marginTop = '20px';
+    headingWrapper.innerHTML = `
+        <label style="color:#007bff;">➕ Ajouter un élément</label>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <select id="heading-level" style="width:60px;">
+                <option value="2">H2</option>
+                <option value="3">H3</option>
+                <option value="4">H4</option>
+            </select>
+            <input type="text" id="heading-text" placeholder="Titre de section..." style="flex:1;">
+            <button type="button" id="btn-add-heading" style="background:#28a745; color:white; border:none; padding:5px 10px; cursor:pointer;">Ajouter Titre</button>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <textarea id="paragraph-text" placeholder="Nouveau paragraphe..." style="flex:1; height:40px;"></textarea>
+            <button type="button" id="btn-add-paragraph" style="background:#17a2b8; color:white; border:none; padding:5px 10px; cursor:pointer;">Ajouter Texte</button>
+        </div>
+    `;
+    container.appendChild(headingWrapper);
+
+    // Zone de texte principale
     const contentWrapper = document.createElement('div');
     contentWrapper.className = 'form-group';
     contentWrapper.innerHTML = '<label>CONTENU (Markdown)</label>';
     const textarea = document.createElement('textarea');
     textarea.id = 'field-content';
     textarea.value = markdownContent;
+    textarea.style.minHeight = '300px';
     contentWrapper.appendChild(textarea);
     container.appendChild(contentWrapper);
+
+    // Logique des boutons AST
+    container.querySelector('#btn-add-heading').onclick = () => {
+        const level = parseInt(document.getElementById('heading-level').value, 10);
+        const text = document.getElementById('heading-text').value.trim();
+        if (!text) return alert('Le titre ne peut pas être vide');
+
+        // On re-parse le contenu actuel du textarea pour être à jour
+        currentAst = parseMarkdownToAst(textarea.value);
+        insertHeadingAst(currentAst, level, text);
+        textarea.value = astToMarkdown(currentAst);
+        document.getElementById('heading-text').value = '';
+    };
+
+    container.querySelector('#btn-add-paragraph').onclick = () => {
+        const text = document.getElementById('paragraph-text').value.trim();
+        if (!text) return alert('Le paragraphe ne peut pas être vide');
+
+        currentAst = parseMarkdownToAst(textarea.value);
+        insertParagraphAst(currentAst, text);
+        textarea.value = astToMarkdown(currentAst);
+        document.getElementById('paragraph-text').value = '';
+    };
+
+    const premierChamp = container.querySelector('input, textarea');
+    if (premierChamp) setTimeout(() => premierChamp.focus(), 50);
 }
 
-// --- FONCTION UTILITAIRE POUR AFFICHER LES MESSAGES SANS ALERT ---
+// --- FONCTION UTILITAIRE MESSAGE ---
 function afficherMessage(texte, estErreur) {
     const msgDiv = document.getElementById('status-message');
+    if(!msgDiv) return;
     msgDiv.innerText = texte;
     msgDiv.style.display = 'block';
 
@@ -368,17 +401,15 @@ function afficherMessage(texte, estErreur) {
         msgDiv.style.backgroundColor = '#d4edda';
         msgDiv.style.color = '#155724';
         msgDiv.style.border = '1px solid #c3e6cb';
-        setTimeout(() => {
-            msgDiv.style.display = 'none';
-        }, 3000);
+        setTimeout(() => { msgDiv.style.display = 'none'; }, 3000);
     }
 }
 
-// --- 4. SAUVEGARDE SANS PERTE DE FOCUS ---
+// --- 4. SAUVEGARDE ---
 function sauvegarder() {
     if (!currentFilePath) return;
 
-    // 1. Récupération des données via le schéma
+    // Récupération des données via le schéma
     const schema = JSON.parse(document.getElementById('form-container').dataset.schema);
     const newConfig = {};
 
@@ -395,7 +426,6 @@ function sauvegarder() {
             val = input.value.trim();
         }
 
-        // Si c'est une variable 'extra', on la range dans l'objet extra
         if (item.context === 'extra') {
             if (!newConfig.extra) newConfig.extra = {};
             newConfig.extra[item.key] = val;
@@ -404,15 +434,14 @@ function sauvegarder() {
         }
     });
 
-    // 2. VALIDATION
+    // Validation
     const validation = validerFormulaire(newConfig);
-
     if (!validation.isValid) {
         afficherMessage("⚠️ " + validation.error, true);
         return; 
     }
 
-    // 3. Écriture du fichier
+    // Écriture du fichier
     const newContent = document.getElementById('field-content').value;
     let fileString;
 
@@ -445,19 +474,14 @@ function lancerZola() {
         alert("Veuillez d'abord charger un projet !");
         return;
     }
-
     arretVolontaire = false;
-
     const btnLaunch = document.getElementById('btn-launch');
     const originalText = btnLaunch.innerText;
     btnLaunch.innerText = "⏳ Nettoyage...";
 
-    // ÉTAPE 1 : On nettoie tout (Taskkill préventif)
     exec('taskkill /IM zola.exe /F', (err) => {
-        
         setTimeout(() => {
             console.log("Démarrage du nouveau Zola...");
-            
             let commande = 'zola serve';
             if (process.platform === 'win32') {
                 const userHome = process.env.USERPROFILE || 'C:\\';
@@ -482,7 +506,6 @@ function lancerZola() {
                     shell.openExternal('http://127.0.0.1:1111');
                 }
             }, 2000);
-
         }, 500); 
     });
 }
@@ -490,16 +513,12 @@ function lancerZola() {
 // --- 6. ARRÊT ZOLA ---
 function arreterZola() {
     arretVolontaire = true;
-
     exec('taskkill /IM zola.exe /F', (err) => {
         if(!err) console.log("Zola tué avec succès.");
     });
-
     processusZola = null;
-
     const btnLaunch = document.getElementById('btn-launch');
     const btnStop = document.getElementById('btn-stop');
-
     if (btnLaunch && btnStop) {
         btnStop.style.display = 'none';
         btnLaunch.style.display = 'block';
@@ -508,7 +527,6 @@ function arreterZola() {
 }
 
 // --- 7. GÉNÉRATION ---
-
 function genererSite() {
     if (!currentProjectDir) {
         alert("Veuillez d'abord charger un projet !");
@@ -525,12 +543,10 @@ function fermerPrompt() {
 
 function confirmerGeneration() {
     const nomDossier = document.getElementById('prompt-input').value;
-
     if (!nomDossier || nomDossier.trim() === "") {
         alert("Le nom ne peut pas être vide !");
         return;
     }
-
     fermerPrompt();
 
     const nomNettoye = nomDossier.replace(/[^a-zA-Z0-9-_]/g, '_');
@@ -538,16 +554,13 @@ function confirmerGeneration() {
     const dossierSortie = path.join(dossierExportsRacine, nomNettoye);
 
     if (!fs.existsSync(dossierExportsRacine)) {
-        try {
-            fs.mkdirSync(dossierExportsRacine);
-        } catch (e) {
+        try { fs.mkdirSync(dossierExportsRacine); } catch (e) {
             alert(`Impossible de créer le dossier : ${dossierExportsRacine}\nErreur : ${e.message}`);
             return;
         }
     }
-
     if (fs.existsSync(dossierSortie)) {
-        alert(`⚠️ Attention : Le dossier "${nomNettoye}" existe déjà dans "rendu_genere".\nChoisissez un autre nom.`);
+        alert(`⚠️ Attention : Le dossier "${nomNettoye}" existe déjà.\nChoisissez un autre nom.`);
         genererSite(); 
         return;
     }
@@ -555,8 +568,6 @@ function confirmerGeneration() {
     const btn = document.querySelector('button[onclick="genererSite()"]');
     const oldText = btn.innerText;
     btn.innerText = "⏳ Génération...";
-
-    console.log(`Génération vers : ${dossierSortie}`);
 
     let zolaExe = 'zola'; 
     if (process.platform === 'win32') {
@@ -569,16 +580,12 @@ function confirmerGeneration() {
 
     exec(commande, { cwd: currentProjectDir }, (error, stdout, stderr) => {
         btn.innerText = oldText;
-
         if (error) {
             console.error("Erreur Build :", error);
             alert(`Erreur lors de la génération :\n${stderr || error.message}`);
             return;
         }
-
         const reponse = confirm(`✅ Site généré dans :\n${dossierSortie}\n\nVoulez-vous ouvrir le dossier ?`);
-        if (reponse) {
-            shell.openPath(dossierSortie);
-        }
+        if (reponse) shell.openPath(dossierSortie);
     });
 }
