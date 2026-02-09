@@ -4,10 +4,12 @@ const fs = require('fs');
 const { ipcRenderer, shell } = require('electron');
 
 // --- IMPORTS DES MODULES LOCAUX ---
+// Comme on est dans le même dossier 'renderer', le ./ fonctionne
 const fileManager = require('./fileManager');
 const zolaManager = require('./zolaManager');
 const formBuilder = require('./formBuilder');
 const validators = require('./validators');
+const gitManager = require('./gitManager');
 const { 
     parseMarkdownToAst, 
     astToMarkdown, 
@@ -18,8 +20,8 @@ const {
 // --- VARIABLES D'ÉTAT ---
 let currentProjectDir = null;
 let currentFilePath = null;
-let formatActuel = 'yaml'; // Stocké pour la sauvegarde
-let currentAst = null;     // Stocke la structure du markdown en mémoire
+let formatActuel = 'yaml'; 
+let currentAst = null;     
 
 // --- FIX FOCUS ---
 window.addEventListener('click', () => {
@@ -37,8 +39,13 @@ async function choisirDossier() {
     if (cheminDossier) {
         currentProjectDir = cheminDossier;
         chargerListeFichiers();
-        console.log(`Projet chargé : ${currentProjectDir}`);
         
+        // Initialisation de l'historique Git
+        gitManager.chargerHistorique(currentProjectDir, (hash) => {
+            voirVersionRelais(hash);
+        });
+
+        console.log(`Projet chargé : ${currentProjectDir}`);
         const btn = document.querySelector('.sidebar-actions .btn-primary');
         if(btn) btn.innerText = "📂 Projet Chargé";
     }
@@ -55,6 +62,8 @@ function chargerListeFichiers() {
     fichiers.forEach(cheminComplet => {
         const div = document.createElement('div');
         div.innerText = path.relative(currentProjectDir, cheminComplet);
+        div.style.padding = '10px'; // Style manquant ajouté
+        div.style.cursor = 'pointer'; // Style manquant ajouté
         
         div.onmouseover = () => div.style.backgroundColor = '#34495e';
         div.onmouseout = () => div.style.backgroundColor = 'transparent';
@@ -158,7 +167,6 @@ async function importerMedia(inputId, previewId, type) {
         console.log(`${type} copiée vers : ${cheminDestination}`);
     } catch (err) {
         console.error(err);
-        // REMPLACEMENT ALERT -> afficherMessage
         afficherMessage(`Erreur copie : ${err.message}`, true);
     }
 }
@@ -246,7 +254,6 @@ function lancerZola() {
     btnLaunch.innerText = "⏳ Démarrage...";
 
     zolaManager.lancerServeur(currentProjectDir, (erreurMessage) => {
-        // REMPLACEMENT ALERT -> afficherMessage
         console.error(erreurMessage);
         afficherMessage(`Erreur Zola : ${erreurMessage}`, true);
         arreterZola();
@@ -289,8 +296,6 @@ function confirmerGeneration() {
     const nomDossier = document.getElementById('prompt-input').value;
     
     if (!nomDossier || nomDossier.trim() === "") {
-        // REMPLACEMENT ALERT
-        // On ferme le prompt et on affiche l'erreur dans l'éditeur
         fermerPrompt();
         afficherMessage("⚠️ Le nom du dossier ne peut pas être vide !", true);
         return;
@@ -299,7 +304,8 @@ function confirmerGeneration() {
     fermerPrompt(); 
 
     const nomNettoye = nomDossier.replace(/[^a-zA-Z0-9-_]/g, '_');
-    const dossierExportsRacine = path.join(__dirname, 'rendu_genere');
+    // Attention : __dirname est maintenant 'renderer', donc on remonte d'un cran
+    const dossierExportsRacine = path.join(__dirname, '../rendu_genere'); 
     const dossierSortie = path.join(dossierExportsRacine, nomNettoye);
 
     if (!fs.existsSync(dossierExportsRacine)) {
@@ -320,20 +326,55 @@ function confirmerGeneration() {
 
         if (error) {
             console.error(error);
-            // REMPLACEMENT ALERT -> afficherMessage
             afficherMessage(`❌ Erreur génération : ${stderr}`, true);
         } else {
-            // SUCCÈS : Plus de confirm(), on ouvre le dossier directement
             afficherMessage(`✅ Site généré : ${nomNettoye}`, false);
-            
-            // Ouvrir le dossier automatiquement (plus fluide)
             shell.openPath(dossierSortie);
         }
     });
 }
 
 // ============================================================
-// 7. EXPOSITION
+// 8. GESTION GIT (Relais vers le module)
+// ============================================================
+
+function nouvelleSauvegarde() {
+    gitManager.nouvelleSauvegarde(
+        currentProjectDir, 
+        afficherMessage, 
+        () => {
+            gitManager.chargerHistorique(currentProjectDir, (h) => voirVersionRelais(h));
+        }
+    );
+}
+
+function pushSite() {
+    gitManager.pushToRemote(currentProjectDir, afficherMessage);
+}
+
+function revenirAuPresent() {
+    gitManager.revenirAuPresent(currentProjectDir, {
+        afficherMessage: afficherMessage,
+        reloadUI: () => {
+            chargerListeFichiers();
+            if (currentFilePath) ouvrirFichier(currentFilePath);
+            gitManager.chargerHistorique(currentProjectDir, (h) => voirVersionRelais(h));
+        }
+    });
+}
+
+function voirVersionRelais(hash) {
+    gitManager.voirVersion(hash, currentProjectDir, {
+        afficherMessage: afficherMessage,
+        reloadUI: () => {
+            chargerListeFichiers();
+            if (currentFilePath) ouvrirFichier(currentFilePath);
+        }
+    });
+}
+
+// ============================================================
+// 9. EXPOSITION GLOBALE
 // ============================================================
 
 window.choisirDossier = choisirDossier;
@@ -343,3 +384,6 @@ window.arreterZola = arreterZola;
 window.genererSite = genererSite;
 window.fermerPrompt = fermerPrompt;
 window.confirmerGeneration = confirmerGeneration;
+window.nouvelleSauvegarde = nouvelleSauvegarde;
+window.revenirAuPresent = revenirAuPresent;
+window.pushSite = pushSite;

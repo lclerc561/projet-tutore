@@ -197,7 +197,28 @@
             <button class="btn btn-purple" onclick="genererSite()">🔨 Générer le site (Export)</button>
         </div>
 
-        <div id="file-list">
+        <div id="file-list"></div>
+
+        <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
+        <h3 style="margin-top:0;">Versions (Git)</h3>
+        
+        <button onclick="nouvelleSauvegarde()" 
+            style="width:100%; padding:8px; margin-bottom:5px; cursor:pointer; background-color: #17a2b8; color: white; border: none; border-radius:4px;">
+            💾 Sauvegarder l'état (Commit)
+        </button>
+
+        <button onclick="pushSite()" 
+            style="width:100%; padding:8px; margin-bottom:15px; cursor:pointer; background-color: #27ae60; color: white; border: none; border-radius:4px; margin-top: 5px;">
+            ☁️ Publier sur Internet (Push)
+        </button>
+
+        <button id="btn-retour-present" onclick="revenirAuPresent()" 
+            style="width:100%; padding:8px; margin-bottom:10px; cursor:pointer; background-color: #ffc107; color: black; border: none; border-radius:4px; display:none;">
+            ↩️ Quitter l'historique (Retour au présent)
+        </button>
+
+        <div id="git-history" style="font-size: 11px; max-height: 200px; overflow-y: auto; background: #fff; border: 1px solid #ddd; padding: 5px;">
+            <em>Chargez un projet pour voir l'historique...</em>
         </div>
     </div>
 
