@@ -4,6 +4,7 @@ const fs = require('fs');
 const { ipcRenderer, shell } = require('electron');
 
 // --- IMPORTS DES MODULES LOCAUX ---
+const creerNouvellePageUI = require('./uiActions');
 const fileManager = require('./fileManager');
 const zolaManager = require('./zolaManager');
 const formBuilder = require('./formBuilder');
@@ -333,7 +334,27 @@ function confirmerGeneration() {
 }
 
 // ============================================================
-// 7. EXPOSITION
+// 7. AJOUT DE PAGE
+// ============================================================
+
+window.creerNouvellePage = () => {
+    const projectDir = window.getCurrentProjectDir();
+    if (!projectDir) {
+        alert("⚠️ Charge un projet avant de créer une page");
+        return;
+    }
+
+    creerNouvellePageUI(
+        projectDir,
+        window.chargerListeFichiers,
+        window.ouvrirFichier
+    );
+};
+
+
+
+// ============================================================
+// 8. EXPOSITION
 // ============================================================
 
 window.choisirDossier = choisirDossier;
@@ -343,3 +364,6 @@ window.arreterZola = arreterZola;
 window.genererSite = genererSite;
 window.fermerPrompt = fermerPrompt;
 window.confirmerGeneration = confirmerGeneration;
+window.getCurrentProjectDir = () => currentProjectDir;
+window.chargerListeFichiers = chargerListeFichiers;
+window.ouvrirFichier = ouvrirFichier;
