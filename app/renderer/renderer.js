@@ -305,7 +305,7 @@ function confirmerGeneration() {
 
     const nomNettoye = nomDossier.replace(/[^a-zA-Z0-9-_]/g, '_');
     // Attention : __dirname est maintenant 'renderer', donc on remonte d'un cran
-    const dossierExportsRacine = path.join(__dirname, '../rendu_genere'); 
+    const dossierExportsRacine = path.join(__dirname, '../../rendu_genere'); 
     const dossierSortie = path.join(dossierExportsRacine, nomNettoye);
 
     if (!fs.existsSync(dossierExportsRacine)) {
