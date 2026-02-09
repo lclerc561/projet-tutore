@@ -17,8 +17,18 @@ Et voici un petit bout de code :
 
 #### test
 
-### test
+### Nouveau sous-titre
 
-## test
+Nouveau texte...
 
-aparagraphe
+Nouveau texte...
+
+- Élément 1
+
+- test
+
+- test3
+
+```js
+console.log("Hello");
+```
