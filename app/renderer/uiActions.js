@@ -1,6 +1,7 @@
 // renderer/uiActions.js
 const fs = require('fs');
 const path = require('path');
+const templateManager = require('./templateManager');
 
 module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile) {
     if (!projectDir) {
@@ -8,7 +9,6 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
         return;
     }
 
-    // Empêche double création
     if (document.getElementById('modal-new-page')) return;
 
     // === MODALE ===
@@ -32,16 +32,15 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
             border-radius:8px;
             width:360px;
             box-shadow:0 10px 30px rgba(0,0,0,0.3);
-            font-family:inherit;
         ">
-            <h3 style="margin-top:0;">➕ Nouvelle page Zola</h3>
+            <h3>➕ Nouvelle page Zola</h3>
 
-            <label style="font-weight:bold;">Nom du fichier</label>
+            <label>Nom du fichier</label>
             <input id="new-page-name" type="text"
                 placeholder="ex: a-propos"
                 style="width:100%; padding:10px; margin:10px 0;">
 
-            <label style="font-weight:bold;">Template</label>
+            <label>Template</label>
             <select id="new-page-template"
                 style="width:100%; padding:10px; margin-bottom:15px;">
                 <option value="page">Page simple</option>
@@ -49,9 +48,9 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
             </select>
 
             <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button id="cancel-new-page" style="padding:8px 12px;">Annuler</button>
+                <button id="cancel-new-page">Annuler</button>
                 <button id="confirm-new-page"
-                    style="padding:8px 12px; background:#27ae60; color:white; border:none;">
+                    style="background:#27ae60; color:white; border:none; padding:8px 12px;">
                     Créer
                 </button>
             </div>
@@ -66,10 +65,10 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
         overlay.remove();
     };
 
-    // === CRÉATION ===
+    // === CRÉER ===
     document.getElementById('confirm-new-page').onclick = () => {
         const nom = document.getElementById('new-page-name').value.trim();
-        const template = document.getElementById('new-page-template').value;
+        const templateId = document.getElementById('new-page-template').value;
 
         if (!nom) {
             alert("Le nom ne peut pas être vide");
@@ -78,30 +77,45 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
 
         const safeName = nom.replace(/[^a-zA-Z0-9-_]/g, '-');
 
-        const contentDir = path.join(projectDir, 'content');
-        const fichier = path.join(contentDir, `${safeName}.md`);
+        // 1️⃣ Charger template
+        const template = templateManager.chargerTemplate(templateId);
 
-        if (fs.existsSync(fichier)) {
-            alert("❌ Ce fichier existe déjà");
-            return;
-        }
+        // 2️⃣ Générer valeurs par défaut
+        const values = {
+            title: safeName.replace(/-/g, ' '),
+            slug: safeName,
+            date: new Date().toISOString().split('T')[0]
+        };
 
+        // Champs body vides
+        template.body.forEach(block => {
+            values[block.id] = '';
+        });
+
+        // 3️⃣ Générer markdown
+        const markdown = templateManager.genererMarkdownDepuisTemplate(template, values);
+
+        // 4️⃣ Créer fichier
+        const contentDir = path.join(projectDir, 'content', template.zola_section);
         if (!fs.existsSync(contentDir)) {
             fs.mkdirSync(contentDir, { recursive: true });
         }
 
-        const templateContent =
-            template === 'blog'
-                ? getBlogTemplate(safeName)
-                : getPageTemplate(safeName);
+        const filePath = path.join(contentDir, `${safeName}.md`);
 
-        fs.writeFileSync(fichier, templateContent, 'utf8');
+        if (fs.existsSync(filePath)) {
+            alert("❌ Ce fichier existe déjà");
+            return;
+        }
+
+        fs.writeFileSync(filePath, markdown, 'utf8');
 
         overlay.remove();
         refreshFiles();
-        openFile(fichier);
+        openFile(filePath);
     };
 };
+
 
 // ===================================================
 // TEMPLATES ZOLA

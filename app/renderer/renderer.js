@@ -5,6 +5,7 @@ const { ipcRenderer, shell } = require('electron');
 
 // --- IMPORTS DES MODULES LOCAUX ---
 const creerNouvellePageUI = require('./uiActions');
+const templateManager = require('./templateManager');
 const fileManager = require('./fileManager');
 const zolaManager = require('./zolaManager');
 const formBuilder = require('./formBuilder');
