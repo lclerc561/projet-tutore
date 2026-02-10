@@ -3,6 +3,7 @@ const remarkParse = require('remark-parse').default;
 const remarkStringify = require('remark-stringify').default;
 
 // --- CORE ---
+
 function parseMarkdownToAst(markdown) {
     return unified().use(remarkParse).parse(markdown || '');
 }
@@ -12,7 +13,10 @@ function astToMarkdown(ast) {
         .use(remarkStringify, {
             bullet: '-',
             fences: true,
-            incrementListMarker: false
+            incrementListMarker: false,
+            handlers: {
+                html: (h, node) => node.value // Pour garder la vidéo HTML intacte
+            }
         })
         .stringify(ast);
 }
@@ -38,7 +42,6 @@ function insertParagraphAst(ast, text) {
 
 function insertBlockquoteAst(ast, text) {
     if (!ast || !ast.children) return;
-    // Structure : Blockquote -> Paragraph -> Text
     ast.children.push({
         type: 'blockquote',
         children: [{
@@ -48,36 +51,18 @@ function insertBlockquoteAst(ast, text) {
     });
 }
 
-/**
- * Ajoute une liste à puces
- */
 function insertListAst(ast) {
     if (!ast || !ast.children) return;
     ast.children.push({
         type: 'list',
         ordered: false,
         children: [
-            {
-                type: 'listItem',
-                children: [{
-                    type: 'paragraph',
-                    children: [{ type: 'text', value: 'Élément 1' }]
-                }]
-            },
-            {
-                type: 'listItem',
-                children: [{
-                    type: 'paragraph',
-                    children: [{ type: 'text', value: 'Élément 2' }]
-                }]
-            }
+            { type: 'listItem', children: [{ type: 'paragraph', children: [{ type: 'text', value: 'Item 1' }] }] },
+            { type: 'listItem', children: [{ type: 'paragraph', children: [{ type: 'text', value: 'Item 2' }] }] }
         ]
     });
 }
 
-/**
- * Ajoute un bloc de code
- */
 function insertCodeBlockAst(ast) {
     if (!ast || !ast.children) return;
     ast.children.push({
@@ -87,16 +72,44 @@ function insertCodeBlockAst(ast) {
     });
 }
 
-// --- HELPERS ---
-function insertParagraphsAst(ast, text) { /* Legacy support if needed */ }
+// --- MEDIA (CORRIGÉ) ---
+
+/**
+ * Ajoute une image DANS un paragraphe (Standard Markdown)
+ * Correction du bug de formatage
+ */
+function insertImageAst(ast) {
+    if (!ast || !ast.children) return;
+    ast.children.push({
+        type: 'paragraph', // L'image doit être dans un paragraphe
+        children: [{
+            type: 'image',
+            url: '', 
+            alt: 'Description image',
+            title: null
+        }]
+    });
+}
+
+/**
+ * Ajoute une vidéo (Bloc HTML)
+ */
+function insertVideoAst(ast) {
+    if (!ast || !ast.children) return;
+    ast.children.push({
+        type: 'html',
+        value: '<video controls src="" width="100%"></video>'
+    });
+}
 
 module.exports = {
     parseMarkdownToAst,
     astToMarkdown,
     insertHeadingAst,
     insertParagraphAst,
-    insertParagraphsAst,
     insertBlockquoteAst,
-    insertListAst,      // <--- Nouveau
-    insertCodeBlockAst  // <--- Nouveau
+    insertListAst,
+    insertCodeBlockAst,
+    insertImageAst, 
+    insertVideoAst
 };

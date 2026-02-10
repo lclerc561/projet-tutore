@@ -12,9 +12,14 @@ const gitManager = require('./gitManager');
 const {
     parseMarkdownToAst,
     astToMarkdown,
+    // Note: unwrapMediaFromParagraphs a été retiré ici
     insertHeadingAst,
     insertParagraphAst,
-    insertBlockquoteAst
+    insertBlockquoteAst,
+    insertListAst,
+    insertCodeBlockAst,
+    insertImageAst,
+    insertVideoAst
 } = require('./markdownAst');
 
 // --- VARIABLES ---
@@ -23,7 +28,7 @@ let currentFilePath = null;
 let formatActuel = 'yaml';
 let currentAst = null;
 
-// --- FOCUS FIX ---
+// --- FIX FOCUS ---
 window.addEventListener('click', () => {
     if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
         window.focus();
@@ -39,7 +44,7 @@ async function choisirDossier() {
     if (cheminDossier) {
         currentProjectDir = cheminDossier;
         chargerListeFichiers();
-
+        
         // Init Git
         gitManager.chargerHistorique(currentProjectDir, (hash) => {
             voirVersionRelais(hash);
@@ -47,7 +52,7 @@ async function choisirDossier() {
 
         const btn = document.querySelector('.sidebar-actions .btn-primary');
         if (btn) btn.innerText = "📂 " + path.basename(cheminDossier);
-
+        
         afficherMessage("Dossier chargé avec succès !", false);
     }
 }
@@ -55,66 +60,58 @@ async function choisirDossier() {
 function chargerListeFichiers() {
     const sidebar = document.getElementById('file-list');
     sidebar.innerHTML = '';
-
     if (!currentProjectDir) return;
-
     const fichiers = fileManager.getAllFiles(currentProjectDir);
-
     fichiers.forEach(cheminComplet => {
         const div = document.createElement('div');
         div.innerText = path.relative(currentProjectDir, cheminComplet);
         div.style.padding = '10px';
         div.style.cursor = 'pointer';
         div.style.borderBottom = '1px solid #34495e';
-
         div.onmouseover = () => div.style.backgroundColor = '#34495e';
         div.onmouseout = () => div.style.backgroundColor = 'transparent';
-
         div.onclick = () => ouvrirFichier(cheminComplet);
-
         sidebar.appendChild(div);
     });
 }
 
 // ============================================================
-// 2. OUVERTURE FICHIER
+// 2. OUVERTURE FICHIER (CORRIGÉ)
 // ============================================================
 
 function ouvrirFichier(chemin) {
     currentFilePath = chemin;
     const { data, content, format } = fileManager.parseMarkdownFile(chemin);
-
     formatActuel = format;
-
+    
     try {
+        // CORRECTION : On ne fait plus de "unwrap", on lit le Markdown standard
         currentAst = parseMarkdownToAst(content);
     } catch (e) {
+        console.error(e);
         afficherMessage("Erreur lecture contenu (AST)", true);
         currentAst = { type: 'root', children: [] };
     }
-
+    
     genererFormulaire(data);
 }
 
 // ============================================================
-// 3. GÉNÉRATION FORMULAIRE & BLOCS
+// 3. GÉNÉRATION FORMULAIRE
 // ============================================================
+
 function rafraichirInterface(frontMatter) {
     genererFormulaire(frontMatter);
 }
+
 function genererFormulaire(frontMatter) {
     const container = document.getElementById('form-container');
-    const schema = []; 
-
-    // Imports des nouvelles fonctions
-    const { insertListAst, insertCodeBlockAst, insertBlockquoteAst } = require('./markdownAst');
+    // Note: on n'utilise plus le tableau 'schema' ici, formBuilder gère tout via le DOM
 
     const callbacks = {
-        // --- Médias ---
         onImportImage: (inputId, previewId) => importerMedia(inputId, previewId, 'image'),
         onImportVideo: (inputId, previewId) => importerMedia(inputId, previewId, 'video'),
 
-        // --- Utilitaire Conversion ---
         nodeToMarkdown: (node) => {
             try { return astToMarkdown({ type: 'root', children: [node] }).trim(); } catch (e) { return ""; }
         },
@@ -123,10 +120,10 @@ function genererFormulaire(frontMatter) {
         onAddHeading: (level, text) => { insertHeadingAst(currentAst, level, text); rafraichirInterface(frontMatter); },
         onAddParagraph: (text) => { insertParagraphAst(currentAst, text); rafraichirInterface(frontMatter); },
         onAddBlockquote: (text) => { insertBlockquoteAst(currentAst, text); rafraichirInterface(frontMatter); },
-        
-        // Nouveaux boutons
         onAddList: () => { insertListAst(currentAst); rafraichirInterface(frontMatter); },
         onAddCode: () => { insertCodeBlockAst(currentAst); rafraichirInterface(frontMatter); },
+        onAddImageBlock: () => { insertImageAst(currentAst); rafraichirInterface(frontMatter); },
+        onAddVideoBlock: () => { insertVideoAst(currentAst); rafraichirInterface(frontMatter); },
 
         // --- MISE A JOUR ---
         onUpdateBlock: (index, newValue, mode) => {
@@ -134,7 +131,6 @@ function genererFormulaire(frontMatter) {
             const node = currentAst.children[index];
 
             if (mode === 'raw') {
-                // Mode BRUT (Listes, Code...) : On parse le Markdown
                 try {
                     const miniAst = parseMarkdownToAst(newValue);
                     if (miniAst.children && miniAst.children.length > 0) {
@@ -143,17 +139,24 @@ function genererFormulaire(frontMatter) {
                 } catch (e) { console.warn("Erreur parsing raw", e); }
 
             } else if (mode === 'blockquote') {
-                // Mode CITATION (Spécial) : On injecte le texte DANS la structure citation
-                // On garde la structure : Blockquote > Paragraph > Text
                 if (!node.children || node.children.length === 0) {
                     node.children = [{ type: 'paragraph', children: [] }];
                 }
-                // On met à jour le texte du premier paragraphe de la citation
                 const pNode = node.children[0];
                 pNode.children = [{ type: 'text', value: newValue }];
 
+            } else if (mode === 'image') {
+                let imgNode = node;
+                if (node.type === 'paragraph' && node.children && node.children[0].type === 'image') {
+                    imgNode = node.children[0];
+                }
+                if(newValue.url !== undefined) imgNode.url = newValue.url;
+                if(newValue.alt !== undefined) imgNode.alt = newValue.alt;
+
+            } else if (mode === 'video') {
+                node.value = newValue;
+
             } else {
-                // Mode SIMPLE (Titre, Paragraphe)
                 if (node.children && node.children.length > 0) {
                     node.children[0].value = newValue;
                 } else {
@@ -162,7 +165,6 @@ function genererFormulaire(frontMatter) {
             }
         },
 
-        // --- DEPLACEMENT / SUPPRESSION ---
         onMoveBlock: (fromIndex, toIndex) => {
             if (fromIndex === toIndex) return;
             const [movedItem] = currentAst.children.splice(fromIndex, 1);
@@ -176,8 +178,12 @@ function genererFormulaire(frontMatter) {
         }
     };
 
-    formBuilder.generateForm(container, frontMatter, currentAst, schema, callbacks, currentProjectDir);
-    container.dataset.schema = JSON.stringify(schema);
+    // On passe null pour 'schema' car formBuilder le gère en interne maintenant
+    formBuilder.generateForm(container, frontMatter, currentAst, null, callbacks, currentProjectDir);
+    
+    // --- CORRECTION MAJEURE ICI ---
+    // J'ai supprimé la ligne : container.dataset.schema = JSON.stringify(schema);
+    // C'est elle qui effaçait la mémoire du formulaire !
 }
 
 // ============================================================
@@ -207,8 +213,15 @@ async function importerMedia(inputId, previewId, type) {
 
     try {
         fs.copyFileSync(cheminSource, cheminDestination);
+        const cheminZola = `/${subFolder}/${nomFichier}`;
 
-        document.getElementById(inputId).value = `/${subFolder}/${nomFichier}`;
+        const input = document.getElementById(inputId);
+        if(input) {
+            input.value = cheminZola;
+            // IMPORTANT : Déclencher l'événement pour la mise à jour live
+            const event = new Event('input', { bubbles: true });
+            input.dispatchEvent(event);
+        }
 
         const preview = document.getElementById(previewId);
         if (preview) {
@@ -222,7 +235,7 @@ async function importerMedia(inputId, previewId, type) {
 }
 
 // ============================================================
-// 5. SAUVEGARDE (AST -> Markdown)
+// 5. SAUVEGARDE
 // ============================================================
 
 function sauvegarder() {
@@ -231,7 +244,6 @@ function sauvegarder() {
         return;
     }
 
-    // 1. Récupération des métadonnées
     const schema = JSON.parse(document.getElementById('form-container').dataset.schema);
     const newConfig = {};
 
@@ -256,14 +268,12 @@ function sauvegarder() {
         }
     });
 
-    // 2. Validation
     const validation = validators.validerFormulaire(newConfig);
     if (!validation.isValid) {
-        afficherMessage(validation.error, true); // Pas d'alert !
+        afficherMessage(validation.error, true);
         return;
     }
 
-    // 3. Reconstruction du Markdown depuis l'AST
     let newContent = "";
     try {
         newContent = astToMarkdown(currentAst);
@@ -272,10 +282,8 @@ function sauvegarder() {
         return;
     }
 
-    // 4. Écriture disque
     try {
         fileManager.saveMarkdownFile(currentFilePath, newConfig, newContent, formatActuel);
-        // On ne recharge pas tout pour ne pas perdre le focus
         afficherMessage("Sauvegarde réussie !", false);
     } catch (e) {
         afficherMessage("Erreur écriture fichier : " + e.message, true);
@@ -283,16 +291,14 @@ function sauvegarder() {
 }
 
 // ============================================================
-// 6. MESSAGES (Pas d'alert !)
+// 6. UTILITAIRES & EXPORTS
 // ============================================================
 
 function afficherMessage(texte, estErreur) {
     const msgDiv = document.getElementById('status-message');
     if (!msgDiv) return;
-
     msgDiv.innerText = texte;
     msgDiv.style.display = 'block';
-
     if (estErreur) {
         msgDiv.style.backgroundColor = '#f8d7da';
         msgDiv.style.color = '#721c24';
@@ -301,27 +307,18 @@ function afficherMessage(texte, estErreur) {
         msgDiv.style.backgroundColor = '#d4edda';
         msgDiv.style.color = '#155724';
         msgDiv.style.border = '1px solid #c3e6cb';
-
-        // Disparait tout seul au bout de 3s
         setTimeout(() => { msgDiv.style.display = 'none'; }, 3000);
     }
 }
 
-// ============================================================
-// 7. ZOLA & EXPORT
-// ============================================================
-
 function lancerZola() {
     if (!currentProjectDir) return afficherMessage("Chargez un projet d'abord", true);
-
     const btnLaunch = document.getElementById('btn-launch');
     btnLaunch.innerText = "⏳ ...";
-
     zolaManager.lancerServeur(currentProjectDir, (erreurMessage) => {
         afficherMessage(`Erreur Zola : ${erreurMessage}`, true);
         arreterZola();
     });
-
     setTimeout(() => {
         btnLaunch.style.display = 'none';
         document.getElementById('btn-stop').style.display = 'block';
@@ -350,56 +347,27 @@ function fermerPrompt() {
 
 function confirmerGeneration() {
     const nomDossier = document.getElementById('prompt-input').value;
-
-    if (!nomDossier || nomDossier.trim() === "") {
-        return afficherMessage("Le nom ne peut pas être vide", true);
-    }
-
+    if (!nomDossier || nomDossier.trim() === "") return afficherMessage("Le nom ne peut pas être vide", true);
     fermerPrompt();
-
     const nomNettoye = nomDossier.replace(/[^a-zA-Z0-9-_]/g, '_');
-    // On remonte d'un cran pour sortir du dossier renderer
     const dossierExportsRacine = path.join(__dirname, '../rendu_genere');
     const dossierSortie = path.join(dossierExportsRacine, nomNettoye);
-
-    if (!fs.existsSync(dossierExportsRacine)) {
-        fs.mkdirSync(dossierExportsRacine);
-    }
-
-    if (fs.existsSync(dossierSortie)) {
-        return afficherMessage(`Le dossier "${nomNettoye}" existe déjà.`, true);
-    }
-
+    if (!fs.existsSync(dossierExportsRacine)) fs.mkdirSync(dossierExportsRacine);
+    if (fs.existsSync(dossierSortie)) return afficherMessage(`Le dossier "${nomNettoye}" existe déjà.`, true);
     afficherMessage("Génération en cours...", false);
-
     zolaManager.buildSite(currentProjectDir, dossierSortie, (error, stderr) => {
-        if (error) {
-            afficherMessage(`Erreur génération : ${stderr}`, true);
-        } else {
-            afficherMessage(`Site généré dans : ${nomNettoye}`, false);
-            // On peut proposer d'ouvrir le dossier sans alert via un petit bouton ou log
-            // shell.openPath(dossierSortie);
-        }
+        if (error) afficherMessage(`Erreur génération : ${stderr}`, true);
+        else afficherMessage(`Site généré dans : ${nomNettoye}`, false);
     });
 }
 
-// ============================================================
-// 8. GIT
-// ============================================================
-
 function nouvelleSauvegarde() {
-    gitManager.nouvelleSauvegarde(
-        currentProjectDir,
-        afficherMessage,
-        () => {
-            gitManager.chargerHistorique(currentProjectDir, (h) => voirVersionRelais(h));
-        }
-    );
+    gitManager.nouvelleSauvegarde(currentProjectDir, afficherMessage, () => {
+        gitManager.chargerHistorique(currentProjectDir, (h) => voirVersionRelais(h));
+    });
 }
 
-function pushSite() {
-    gitManager.pushToRemote(currentProjectDir, afficherMessage);
-}
+function pushSite() { gitManager.pushToRemote(currentProjectDir, afficherMessage); }
 
 function revenirAuPresent() {
     gitManager.revenirAuPresent(currentProjectDir, {
@@ -422,10 +390,7 @@ function voirVersionRelais(hash) {
     });
 }
 
-// ============================================================
-// 9. EXPORT GLOBAL
-// ============================================================
-
+// Exports
 window.choisirDossier = choisirDossier;
 window.sauvegarder = sauvegarder;
 window.lancerZola = lancerZola;
