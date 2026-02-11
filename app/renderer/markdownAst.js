@@ -2,77 +2,103 @@ const { unified } = require('unified');
 const remarkParse = require('remark-parse').default;
 const remarkStringify = require('remark-stringify').default;
 
-/**
- * Parse un markdown en AST (remark)
- */
+// --- CORE ---
+
 function parseMarkdownToAst(markdown) {
-    return unified()
-        .use(remarkParse)
-        .parse(markdown || '');
+    return unified().use(remarkParse).parse(markdown || '');
 }
 
-/**
- * Convertit un AST remark en markdown
- */
 function astToMarkdown(ast) {
     return unified()
         .use(remarkStringify, {
             bullet: '-',
             fences: true,
-            incrementListMarker: false
+            incrementListMarker: false,
+            handlers: {
+                html: (h, node) => node.value // Pour garder la vidéo HTML intacte
+            }
         })
         .stringify(ast);
 }
 
-/**
- * Ajoute un titre (H2 minimum pour Zola)
- */
-function insertHeadingAst(ast, level, text) {
-    if (!ast || !ast.children || !text) return;
+// --- INSERTION ---
 
-    const headingNode = {
+function insertHeadingAst(ast, level, text) {
+    if (!ast || !ast.children) return;
+    ast.children.push({
         type: 'heading',
         depth: Math.min(Math.max(level, 2), 6),
-        children: [
-            { type: 'text', value: text }
-        ]
-    };
-
-    ast.children.push(headingNode);
+        children: [{ type: 'text', value: text || 'Nouveau titre' }]
+    });
 }
 
-/**
- * Ajoute un paragraphe simple
- */
 function insertParagraphAst(ast, text) {
-    if (!ast || !ast.children || !text) return;
-
-    const paragraphNode = {
+    if (!ast || !ast.children) return;
+    ast.children.push({
         type: 'paragraph',
-        children: [
-            { type: 'text', value: text }
-        ]
-    };
+        children: [{ type: 'text', value: text || 'Nouveau texte' }]
+    });
+}
 
-    ast.children.push(paragraphNode);
+function insertBlockquoteAst(ast, text) {
+    if (!ast || !ast.children) return;
+    ast.children.push({
+        type: 'blockquote',
+        children: [{
+            type: 'paragraph',
+            children: [{ type: 'text', value: text || 'Citation...' }]
+        }]
+    });
+}
+
+function insertListAst(ast) {
+    if (!ast || !ast.children) return;
+    ast.children.push({
+        type: 'list',
+        ordered: false,
+        children: [
+            { type: 'listItem', children: [{ type: 'paragraph', children: [{ type: 'text', value: 'Item 1' }] }] },
+            { type: 'listItem', children: [{ type: 'paragraph', children: [{ type: 'text', value: 'Item 2' }] }] }
+        ]
+    });
+}
+
+function insertCodeBlockAst(ast) {
+    if (!ast || !ast.children) return;
+    ast.children.push({
+        type: 'code',
+        lang: 'js',
+        value: 'console.log("Hello");'
+    });
+}
+
+// --- MEDIA (CORRIGÉ) ---
+
+/**
+ * Ajoute une image DANS un paragraphe (Standard Markdown)
+ * Correction du bug de formatage
+ */
+function insertImageAst(ast) {
+    if (!ast || !ast.children) return;
+    ast.children.push({
+        type: 'paragraph', // L'image doit être dans un paragraphe
+        children: [{
+            type: 'image',
+            url: '', 
+            alt: 'Description image',
+            title: null
+        }]
+    });
 }
 
 /**
- * Ajoute plusieurs paragraphes (séparés par ligne vide)
+ * Ajoute une vidéo (Bloc HTML)
  */
-function insertParagraphsAst(ast, text) {
-    if (!ast || !ast.children || !text) return;
-
-    const paragraphs = text
-        .split(/\n\s*\n/)
-        .map(p => p.trim())
-        .filter(Boolean);
-
-    paragraphs.forEach(p => {
-        ast.children.push({
-            type: 'paragraph',
-            children: [{ type: 'text', value: p }]
-        });
+function insertVideoAst(ast) {
+    if (!ast || !ast.children) return;
+    ast.children.push({
+        type: 'html',
+        value: '<video controls src="" width="100%"></video>'
     });
 }
 
@@ -81,5 +107,9 @@ module.exports = {
     astToMarkdown,
     insertHeadingAst,
     insertParagraphAst,
-    insertParagraphsAst
+    insertBlockquoteAst,
+    insertListAst,
+    insertCodeBlockAst,
+    insertImageAst, 
+    insertVideoAst
 };
