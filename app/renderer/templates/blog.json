@@ -1,0 +1,25 @@
+{
+  "id": "blog",
+  "label": "Article de blog",
+  "zola_section": "blog",
+  "front_matter": {
+    "title": "string",
+    "slug": "string",
+    "date": "string"
+  },
+  "body": [
+    {
+      "type": "heading",
+      "level": 1,
+      "id": "title"
+    },
+    {
+      "type": "paragraph",
+      "id": "intro"
+    },
+    {
+      "type": "paragraph",
+      "id": "content"
+    }
+  ]
+}

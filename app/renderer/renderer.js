@@ -9,10 +9,14 @@ const zolaManager = require('./zolaManager');
 const formBuilder = require('./formBuilder');
 const validators = require('./validators');
 const gitManager = require('./gitManager');
+
+// Imports des modules de la feature "Création de page"
+const creerNouvellePageUI = require('./uiActions');
+const templateManager = require('./templateManager');
+
 const {
     parseMarkdownToAst,
     astToMarkdown,
-    // Note: unwrapMediaFromParagraphs a été retiré ici
     insertHeadingAst,
     insertParagraphAst,
     insertBlockquoteAst,
@@ -76,7 +80,7 @@ function chargerListeFichiers() {
 }
 
 // ============================================================
-// 2. OUVERTURE FICHIER (CORRIGÉ)
+// 2. OUVERTURE FICHIER
 // ============================================================
 
 function ouvrirFichier(chemin) {
@@ -85,7 +89,6 @@ function ouvrirFichier(chemin) {
     formatActuel = format;
     
     try {
-        // CORRECTION : On ne fait plus de "unwrap", on lit le Markdown standard
         currentAst = parseMarkdownToAst(content);
     } catch (e) {
         console.error(e);
@@ -106,7 +109,6 @@ function rafraichirInterface(frontMatter) {
 
 function genererFormulaire(frontMatter) {
     const container = document.getElementById('form-container');
-    // Note: on n'utilise plus le tableau 'schema' ici, formBuilder gère tout via le DOM
 
     const callbacks = {
         onImportImage: (inputId, previewId) => importerMedia(inputId, previewId, 'image'),
@@ -116,7 +118,6 @@ function genererFormulaire(frontMatter) {
             try { return astToMarkdown({ type: 'root', children: [node] }).trim(); } catch (e) { return ""; }
         },
 
-        // --- AJOUTS ---
         onAddHeading: (level, text) => { insertHeadingAst(currentAst, level, text); rafraichirInterface(frontMatter); },
         onAddParagraph: (text) => { insertParagraphAst(currentAst, text); rafraichirInterface(frontMatter); },
         onAddBlockquote: (text) => { insertBlockquoteAst(currentAst, text); rafraichirInterface(frontMatter); },
@@ -125,7 +126,6 @@ function genererFormulaire(frontMatter) {
         onAddImageBlock: () => { insertImageAst(currentAst); rafraichirInterface(frontMatter); },
         onAddVideoBlock: () => { insertVideoAst(currentAst); rafraichirInterface(frontMatter); },
 
-        // --- MISE A JOUR ---
         onUpdateBlock: (index, newValue, mode) => {
             if (!currentAst || !currentAst.children[index]) return;
             const node = currentAst.children[index];
@@ -178,12 +178,7 @@ function genererFormulaire(frontMatter) {
         }
     };
 
-    // On passe null pour 'schema' car formBuilder le gère en interne maintenant
     formBuilder.generateForm(container, frontMatter, currentAst, null, callbacks, currentProjectDir);
-    
-    // --- CORRECTION MAJEURE ICI ---
-    // J'ai supprimé la ligne : container.dataset.schema = JSON.stringify(schema);
-    // C'est elle qui effaçait la mémoire du formulaire !
 }
 
 // ============================================================
@@ -218,7 +213,6 @@ async function importerMedia(inputId, previewId, type) {
         const input = document.getElementById(inputId);
         if(input) {
             input.value = cheminZola;
-            // IMPORTANT : Déclencher l'événement pour la mise à jour live
             const event = new Event('input', { bubbles: true });
             input.dispatchEvent(event);
         }
@@ -350,7 +344,10 @@ function confirmerGeneration() {
     if (!nomDossier || nomDossier.trim() === "") return afficherMessage("Le nom ne peut pas être vide", true);
     fermerPrompt();
     const nomNettoye = nomDossier.replace(/[^a-zA-Z0-9-_]/g, '_');
+    
+    // Chemin relatif correct pour remonter de 'renderer' vers la racine puis 'rendu_genere'
     const dossierExportsRacine = path.join(__dirname, '../../rendu_genere'); 
+    
     const dossierSortie = path.join(dossierExportsRacine, nomNettoye);
     if (!fs.existsSync(dossierExportsRacine)) fs.mkdirSync(dossierExportsRacine);
     if (fs.existsSync(dossierSortie)) return afficherMessage(`Le dossier "${nomNettoye}" existe déjà.`, true);
@@ -390,7 +387,29 @@ function voirVersionRelais(hash) {
     });
 }
 
-// Exports
+// ============================================================
+// 7. AJOUT DE PAGE (NOUVELLE FONCTIONNALITÉ)
+// ============================================================
+
+window.creerNouvellePage = () => {
+    // Note: window.getCurrentProjectDir() est défini dans les exports plus bas
+    const projectDir = currentProjectDir; 
+    if (!projectDir) {
+        alert("⚠️ Charge un projet avant de créer une page");
+        return;
+    }
+
+    creerNouvellePageUI(
+        projectDir,
+        chargerListeFichiers, // On passe la fonction directement
+        ouvrirFichier         // On passe la fonction directement
+    );
+};
+
+// ============================================================
+// 8. EXPORTS GLOBAUX
+// ============================================================
+
 window.choisirDossier = choisirDossier;
 window.sauvegarder = sauvegarder;
 window.lancerZola = lancerZola;
@@ -401,3 +420,8 @@ window.confirmerGeneration = confirmerGeneration;
 window.nouvelleSauvegarde = nouvelleSauvegarde;
 window.revenirAuPresent = revenirAuPresent;
 window.pushSite = pushSite;
+
+// Exports pour les modules externes (feature camarade)
+window.getCurrentProjectDir = () => currentProjectDir;
+window.chargerListeFichiers = chargerListeFichiers;
+window.ouvrirFichier = ouvrirFichier;
