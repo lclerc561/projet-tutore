@@ -1,43 +1,57 @@
-const fs = require('fs');
-const path = require('path');
+const templateRegistry = require('./templateRegistry');
 
-function chargerTemplate(templateId) {
-    const templatePath = path.join(__dirname, 'templates', `${templateId}.json`);
-    return JSON.parse(fs.readFileSync(templatePath, 'utf-8'));
-}
+function genererMarkdownDepuisTemplate(templateKey, nomPage) {
+    const template = templateRegistry[templateKey];
 
-function genererMarkdownDepuisTemplate(template, values) {
-    let md = '+++\n';
+    if (!template) {
+        throw new Error("Template introuvable : " + templateKey);
+    }
 
-    for (const key in template.front_matter) {
-        const val = values[key];
-        if (val !== undefined && val !== '') {
-            if (Array.isArray(val)) {
-                md += `${key} = [${val.map(v => `"${v}"`).join(', ')}]\n`;
-            } else {
-                md += `${key} = "${val}"\n`;
-            }
+    const frontMatter = {};
+    const extra = {};
+
+    // --- FRONT MATTER ---
+    for (const key in template.frontMatter) {
+        const value = template.frontMatter[key];
+
+        if (typeof value === 'function') {
+            frontMatter[key] = value();
+        } else if (key === 'title') {
+            frontMatter[key] = nomPage;
+        } else {
+            frontMatter[key] = value;
         }
     }
 
-    md += '+++\n\n';
+    // --- EXTRA ---
+    for (const key in template.extra) {
+        extra[key] = template.extra[key];
+    }
 
-    template.body.forEach(block => {
-        const val = values[block.id];
-        if (!val) return;
+    // --- CONSTRUCTION TEXTE ---
+    let markdown = "---\n";
 
-        if (block.type.startsWith('h')) {
-            const level = parseInt(block.type.replace('h', ''), 10);
-            md += `${'#'.repeat(level)} ${val}\n\n`;
-        } else {
-            md += `${val}\n\n`;
+    for (const key in frontMatter) {
+        markdown += `${key}: "${frontMatter[key]}"\n`;
+    }
+
+    if (Object.keys(extra).length > 0) {
+        markdown += "\n[extra]\n";
+        for (const key in extra) {
+            markdown += `${key} = "${extra[key]}"\n`;
         }
-    });
+    }
 
-    return md;
+    markdown += "---\n\n";
+
+    // Remplace {{title}} dans le body
+    const body = template.body.replace("{{title}}", nomPage);
+
+    markdown += body;
+
+    return markdown;
 }
 
 module.exports = {
-    chargerTemplate,
     genererMarkdownDepuisTemplate
 };

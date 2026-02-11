@@ -2,8 +2,10 @@
 const fs = require('fs');
 const path = require('path');
 const templateManager = require('./templateManager');
+const templateRegistry = require('./templateRegistry');
 
 module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile) {
+
     if (!projectDir) {
         alert("⚠️ Charge un projet avant de créer une page");
         return;
@@ -11,44 +13,59 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
 
     if (document.getElementById('modal-new-page')) return;
 
-    // === MODALE ===
+    // ============================
+    // MODALE
+    // ============================
+
     const overlay = document.createElement('div');
     overlay.id = 'modal-new-page';
-    overlay.style.position = 'fixed';
-    overlay.style.top = 0;
-    overlay.style.left = 0;
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.background = 'rgba(0,0,0,0.5)';
-    overlay.style.display = 'flex';
-    overlay.style.justifyContent = 'center';
-    overlay.style.alignItems = 'center';
-    overlay.style.zIndex = 2000;
+    overlay.style.cssText = `
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,0.5);
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        z-index:2000;
+    `;
+
+    // Génération dynamique des templates
+    let templateOptions = '';
+    for (const key in templateRegistry) {
+        templateOptions += `
+            <option value="${key}">
+                ${templateRegistry[key].label}
+            </option>
+        `;
+    }
 
     overlay.innerHTML = `
         <div style="
             background:white;
             padding:20px;
             border-radius:8px;
-            width:360px;
+            width:380px;
             box-shadow:0 10px 30px rgba(0,0,0,0.3);
         ">
-            <h3>➕ Nouvelle page Zola</h3>
+            <h3 style="margin-top:0;">➕ Nouvelle page Zola</h3>
 
-            <label>Nom du fichier</label>
+            <label style="font-weight:bold;">Nom du fichier</label>
             <input id="new-page-name" type="text"
                 placeholder="ex: a-propos"
                 style="width:100%; padding:10px; margin:10px 0;">
 
-            <label>Template</label>
+            <label style="font-weight:bold;">Template HTML</label>
             <select id="new-page-template"
                 style="width:100%; padding:10px; margin-bottom:15px;">
-                <option value="page">Page simple</option>
-                <option value="blog">Article de blog</option>
+                ${templateOptions}
             </select>
 
             <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button id="cancel-new-page">Annuler</button>
+                <button id="cancel-new-page"
+                    style="padding:8px 12px;">
+                    Annuler
+                </button>
+
                 <button id="confirm-new-page"
                     style="background:#27ae60; color:white; border:none; padding:8px 12px;">
                     Créer
@@ -60,15 +77,22 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
     document.body.appendChild(overlay);
     document.getElementById('new-page-name').focus();
 
-    // === ANNULER ===
+    // ============================
+    // ANNULATION
+    // ============================
+
     document.getElementById('cancel-new-page').onclick = () => {
         overlay.remove();
     };
 
-    // === CRÉER ===
+    // ============================
+    // CRÉATION
+    // ============================
+
     document.getElementById('confirm-new-page').onclick = () => {
+
         const nom = document.getElementById('new-page-name').value.trim();
-        const templateId = document.getElementById('new-page-template').value;
+        const templateKey = document.getElementById('new-page-template').value;
 
         if (!nom) {
             alert("Le nom ne peut pas être vide");
@@ -77,79 +101,58 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
 
         const safeName = nom.replace(/[^a-zA-Z0-9-_]/g, '-');
 
-        // 1️⃣ Charger template
-        const template = templateManager.chargerTemplate(templateId);
+        try {
 
-        // 2️⃣ Générer valeurs par défaut
-        const values = {
-            title: safeName.replace(/-/g, ' '),
-            slug: safeName,
-            date: new Date().toISOString().split('T')[0]
-        };
+            // Génération automatique du markdown
+            const markdown = templateManager.genererMarkdownDepuisTemplate(
+                templateKey,
+                safeName
+            );
 
-        // Champs body vides
-        template.body.forEach(block => {
-            values[block.id] = '';
-        });
+            // Dossier content
+            const contentDir = path.join(projectDir, 'content');
 
-        // 3️⃣ Générer markdown
-        const markdown = templateManager.genererMarkdownDepuisTemplate(template, values);
+            if (!fs.existsSync(contentDir)) {
+                fs.mkdirSync(contentDir, { recursive: true });
+            }
 
-        // 4️⃣ Créer fichier
-        const contentDir = path.join(projectDir, 'content', template.zola_section);
-        if (!fs.existsSync(contentDir)) {
-            fs.mkdirSync(contentDir, { recursive: true });
+            const filePath = path.join(contentDir, `${safeName}.md`);
+
+            if (fs.existsSync(filePath)) {
+                afficherErreur("❌ Ce fichier existe déjà");
+                return;
+            }
+
+            fs.writeFileSync(filePath, markdown, 'utf8');
+
+            overlay.remove();
+            refreshFiles();
+            openFile(filePath);
+
+        } catch (error) {
+            console.error(error);
+            afficherErreur("Erreur création page : " + error.message);
         }
-
-        const filePath = path.join(contentDir, `${safeName}.md`);
-
-        if (fs.existsSync(filePath)) {
-            alert("❌ Ce fichier existe déjà");
-            return;
-        }
-
-        fs.writeFileSync(filePath, markdown, 'utf8');
-
-        overlay.remove();
-        refreshFiles();
-        openFile(filePath);
     };
+
+    function afficherErreur(message) {
+    let errorDiv = document.getElementById('new-page-error');
+
+    if (!errorDiv) {
+        errorDiv = document.createElement('div');
+        errorDiv.id = 'new-page-error';
+        errorDiv.style.color = '#e74c3c';
+        errorDiv.style.marginBottom = '10px';
+        errorDiv.style.fontWeight = 'bold';
+
+        const modal = document.querySelector('#modal-new-page div');
+        modal.insertBefore(errorDiv, modal.children[1]);
+    }
+
+    errorDiv.innerText = message;
+
+    const input = document.getElementById('new-page-name');
+    if (input) input.focus();
+}
+
 };
-
-
-// ===================================================
-// TEMPLATES ZOLA
-// ===================================================
-
-function getPageTemplate(slug) {
-    return `+++
-title = "${humanize(slug)}"
-draft = false
-+++
-
-# ${humanize(slug)}
-
-Contenu de la page...
-`;
-}
-
-function getBlogTemplate(slug) {
-    const date = new Date().toISOString().split('T')[0];
-
-    return `+++
-title = "${humanize(slug)}"
-date = ${date}
-draft = false
-+++
-
-# ${humanize(slug)}
-
-Introduction de l'article...
-`;
-}
-
-function humanize(str) {
-    return str
-        .replace(/-/g, ' ')
-        .replace(/\b\w/g, l => l.toUpperCase());
-}
