@@ -23,8 +23,8 @@ const ZOLA_DEFAULTS = {
 
 function updateSchema(container, key, context) {
     let schema = [];
-    try { schema = JSON.parse(container.dataset.schema || '[]'); } catch (e) {}
-    
+    try { schema = JSON.parse(container.dataset.schema || '[]'); } catch (e) { }
+
     const index = schema.findIndex(i => i.key === key && i.context === context);
     if (index !== -1) {
         schema[index] = { key, context };
@@ -36,7 +36,7 @@ function updateSchema(container, key, context) {
 
 function removeFromSchema(container, key, context) {
     let schema = [];
-    try { schema = JSON.parse(container.dataset.schema || '[]'); } catch (e) {}
+    try { schema = JSON.parse(container.dataset.schema || '[]'); } catch (e) { }
     const newSchema = schema.filter(i => !(i.key === key && i.context === context));
     container.dataset.schema = JSON.stringify(newSchema);
 }
@@ -50,11 +50,11 @@ function createInputElement(key, value, context, callbacks, projectDir, containe
     wrapper.className = 'form-group';
     wrapper.style.marginBottom = '15px';
     wrapper.style.padding = '12px';
-    wrapper.style.border = '1px solid #e0e0e0'; 
+    wrapper.style.border = '1px solid #e0e0e0';
     wrapper.style.borderRadius = '6px';
     wrapper.style.backgroundColor = '#fff';
     wrapper.style.position = 'relative';
-    
+
     // Couleur de bordure
     if (context === 'extra') {
         wrapper.style.borderLeft = '4px solid #6f42c1'; // Violet
@@ -130,10 +130,10 @@ function createInputElement(key, value, context, callbacks, projectDir, containe
         mediaPreview.id = previewId;
         mediaPreview.style.maxWidth = '100%'; mediaPreview.style.maxHeight = '150px'; mediaPreview.style.marginBottom = '10px'; mediaPreview.style.display = 'none';
         if (isVideo) mediaPreview.controls = true;
-        
-        if(value && typeof value === 'string') {
+
+        if (value && typeof value === 'string') {
             if (value.startsWith('/') && projectDir) {
-                const cleanPath = value.substring(1); 
+                const cleanPath = value.substring(1);
                 const fullPath = path.join(projectDir, 'static', cleanPath);
                 mediaPreview.src = `file://${fullPath}`;
             } else { mediaPreview.src = value; }
@@ -142,7 +142,7 @@ function createInputElement(key, value, context, callbacks, projectDir, containe
         mediaBox.appendChild(mediaPreview);
 
         const input = document.createElement('input');
-        input.type = 'text'; input.value = value || ''; input.id = inputId; input.className = 'form-control'; 
+        input.type = 'text'; input.value = value || ''; input.id = inputId; input.className = 'form-control';
         input.style.width = '100%'; input.style.marginBottom = '8px';
         mediaBox.appendChild(input);
 
@@ -151,7 +151,7 @@ function createInputElement(key, value, context, callbacks, projectDir, containe
         btn.className = 'btn'; btn.style.background = isVideo ? '#6f42c1' : '#17a2b8'; btn.style.color = 'white'; btn.style.fontSize = '0.8em'; btn.style.padding = '5px 10px';
         btn.onclick = (e) => {
             e.preventDefault();
-            if(isVideo) callbacks.onImportVideo(inputId, previewId);
+            if (isVideo) callbacks.onImportVideo(inputId, previewId);
             else callbacks.onImportImage(inputId, previewId);
         };
         mediaBox.appendChild(btn);
@@ -160,20 +160,20 @@ function createInputElement(key, value, context, callbacks, projectDir, containe
     } else if (finalType === 'boolean') {
         const input = document.createElement('input');
         input.type = 'checkbox';
-        input.checked = value === true || value === 'true'; 
+        input.checked = value === true || value === 'true';
         input.id = inputId;
         input.style.transform = "scale(1.5)";
         input.style.marginLeft = "5px";
-        
+
         const labelRow = document.createElement('div');
         labelRow.style.display = 'flex'; labelRow.style.alignItems = 'center';
         labelRow.appendChild(input);
-        
+
         const statusLabel = document.createElement('span');
         statusLabel.innerText = input.checked ? " Vrai (True)" : " Faux (False)";
         statusLabel.style.marginLeft = "10px"; statusLabel.style.fontSize = "0.9em";
         labelRow.appendChild(statusLabel);
-        
+
         input.onchange = () => { statusLabel.innerText = input.checked ? " Vrai (True)" : " Faux (False)"; };
         wrapper.appendChild(labelRow);
 
@@ -182,11 +182,11 @@ function createInputElement(key, value, context, callbacks, projectDir, containe
         input.type = 'text'; input.className = 'form-control';
         input.value = Array.isArray(value) ? value.join(', ') : (value || '');
         input.id = inputId; input.style.width = '100%';
-        
+
         const help = document.createElement('small');
         help.innerHTML = "📝 <b>Liste :</b> séparez par une virgule (ex: <code>chat, chien</code>)";
         help.style.color = '#d35400'; help.style.display = 'block'; help.style.marginTop = '5px';
-        
+
         wrapper.appendChild(input);
         wrapper.appendChild(help);
 
@@ -194,10 +194,10 @@ function createInputElement(key, value, context, callbacks, projectDir, containe
         const input = document.createElement('input');
         input.type = 'date';
         input.className = 'form-control';
-        try { 
+        try {
             if (value instanceof Date) input.value = value.toISOString().split('T')[0];
             else if (value) input.value = String(value).split('T')[0];
-        } catch (e) {}
+        } catch (e) { }
         input.id = inputId; input.style.width = '100%';
         wrapper.appendChild(input);
 
@@ -213,14 +213,14 @@ function createInputElement(key, value, context, callbacks, projectDir, containe
 }
 
 // ============================================================
-// 3. BLOCS DE CONTENU (MD) - (Inchangé)
+// 3. BLOCS DE CONTENU (MD)
 // ============================================================
 function createBlockElement(node, index, callbacks, projectDir) {
     const wrapper = document.createElement('div');
     wrapper.className = 'block-item';
     wrapper.style.marginBottom = '15px'; wrapper.style.padding = '15px 15px 15px 40px'; wrapper.style.background = 'white'; wrapper.style.border = '1px solid #e0e0e0'; wrapper.style.borderRadius = '8px'; wrapper.style.position = 'relative'; wrapper.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)'; wrapper.style.transition = 'all 0.2s';
 
-    wrapper.draggable = true; 
+    wrapper.draggable = true;
     const grip = document.createElement('div'); grip.innerHTML = '⋮⋮'; grip.style.position = 'absolute'; grip.style.left = '10px'; grip.style.top = '50%'; grip.style.transform = 'translateY(-50%)'; grip.style.cursor = 'grab'; grip.style.color = '#ccc'; grip.style.fontSize = '20px'; grip.style.fontWeight = 'bold'; grip.style.userSelect = 'none'; wrapper.appendChild(grip);
 
     wrapper.addEventListener('dragstart', (e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', index); wrapper.style.opacity = '0.5'; });
@@ -236,7 +236,7 @@ function createBlockElement(node, index, callbacks, projectDir) {
     const isImageParagraph = (node.type === 'paragraph' && node.children && node.children.length === 1 && node.children[0].type === 'image');
 
     if (node.type === 'heading') {
-        badge.innerText = `H${node.depth}`; badge.style.background = '#3498db'; 
+        badge.innerText = `H${node.depth}`; badge.style.background = '#3498db';
         let contentValue = node.children.map(c => c.value || '').join('');
         const input = document.createElement('input'); input.type = 'text'; input.value = contentValue; input.style.width = '100%'; input.style.border = 'none'; input.style.outline = 'none'; input.style.fontWeight = 'bold'; input.style.fontSize = (26 - (node.depth * 2)) + 'px'; input.placeholder = "Titre...";
         input.draggable = true; input.addEventListener('dragstart', (e) => { e.preventDefault(); e.stopPropagation(); });
@@ -247,8 +247,8 @@ function createBlockElement(node, index, callbacks, projectDir) {
         const imgNode = node.children[0]; const url = imgNode.url || '';
         const imgContainer = document.createElement('div'); imgContainer.style.textAlign = 'center';
         const preview = document.createElement('img'); preview.style.maxWidth = '100%'; preview.style.maxHeight = '200px'; preview.style.marginBottom = '10px'; preview.style.borderRadius = '4px';
-        if(url && url.startsWith('/') && projectDir) { const fullPath = path.join(projectDir, 'static', url.substring(1)); preview.src = `file://${fullPath}`; } else { preview.src = url; }
-        
+        if (url && url.startsWith('/') && projectDir) { const fullPath = path.join(projectDir, 'static', url.substring(1)); preview.src = `file://${fullPath}`; } else { preview.src = url; }
+
         const inputId = `block-img-${index}`; const previewId = `block-prev-${index}`; preview.id = previewId; imgContainer.appendChild(preview);
         const inputUrl = document.createElement('input'); inputUrl.type = 'text'; inputUrl.value = url; inputUrl.id = inputId; inputUrl.style.width = '100%'; inputUrl.style.marginBottom = '5px'; inputUrl.placeholder = "Chemin de l'image";
         inputUrl.draggable = true; inputUrl.addEventListener('dragstart', (e) => { e.preventDefault(); e.stopPropagation(); });
@@ -256,14 +256,14 @@ function createBlockElement(node, index, callbacks, projectDir) {
         const btnBrowse = document.createElement('button'); btnBrowse.innerText = "📂 Choisir une image"; btnBrowse.style.background = '#e74c3c'; btnBrowse.style.color = 'white'; btnBrowse.style.border = 'none'; btnBrowse.style.padding = '5px 10px'; btnBrowse.style.borderRadius = '3px'; btnBrowse.style.cursor = 'pointer';
         btnBrowse.onclick = (e) => { e.preventDefault(); callbacks.onImportImage(inputId, previewId); }; imgContainer.appendChild(btnBrowse); wrapper.appendChild(imgContainer);
     } else if (node.type === 'paragraph') {
-        badge.innerText = 'Texte (MD)'; badge.style.background = '#27ae60'; 
+        badge.innerText = 'Texte (MD)'; badge.style.background = '#27ae60';
         const rawMd = callbacks.nodeToMarkdown(node);
         const textarea = document.createElement('textarea'); textarea.value = rawMd; textarea.style.width = '100%'; textarea.style.minHeight = '60px'; textarea.style.border = 'none'; textarea.style.resize = 'vertical'; textarea.style.outline = 'none'; textarea.style.fontFamily = 'inherit';
         textarea.draggable = true; textarea.addEventListener('dragstart', (e) => { e.preventDefault(); e.stopPropagation(); });
         textarea.oninput = (e) => callbacks.onUpdateBlock(index, e.target.value, 'raw'); wrapper.appendChild(textarea);
     } else if (node.type === 'blockquote') {
         badge.innerText = 'Citation'; badge.style.background = '#f1c40f';
-        let rawText = ""; if(node.children && node.children.length > 0 && node.children[0].type === 'paragraph') { rawText = node.children[0].children.map(c => c.value).join(''); }
+        let rawText = ""; if (node.children && node.children.length > 0 && node.children[0].type === 'paragraph') { rawText = node.children[0].children.map(c => c.value).join(''); }
         const area = document.createElement('textarea'); area.value = rawText; area.style.width = '100%'; area.style.minHeight = '60px'; area.style.border = 'none'; area.style.borderLeft = '5px solid #f1c40f'; area.style.padding = '10px'; area.style.backgroundColor = '#fffcf5'; area.style.resize = 'vertical'; area.style.outline = 'none';
         area.draggable = true; area.addEventListener('dragstart', (e) => { e.preventDefault(); e.stopPropagation(); });
         area.oninput = (e) => callbacks.onUpdateBlock(index, e.target.value, 'blockquote'); wrapper.appendChild(area);
@@ -272,7 +272,7 @@ function createBlockElement(node, index, callbacks, projectDir) {
         const vidContainer = document.createElement('div'); vidContainer.style.textAlign = 'center';
         const srcMatch = node.value.match(/src="([^"]+)"/); const currentSrc = srcMatch ? srcMatch[1] : '';
         const preview = document.createElement('video'); preview.controls = true; preview.style.maxWidth = '100%'; preview.style.maxHeight = '200px'; preview.style.marginBottom = '10px';
-        if(currentSrc && currentSrc.startsWith('/') && projectDir) { const fullPath = path.join(projectDir, 'static', currentSrc.substring(1)); preview.src = `file://${fullPath}`; } else { preview.src = currentSrc; }
+        if (currentSrc && currentSrc.startsWith('/') && projectDir) { const fullPath = path.join(projectDir, 'static', currentSrc.substring(1)); preview.src = `file://${fullPath}`; } else { preview.src = currentSrc; }
         const inputId = `block-vid-${index}`; const previewId = `block-vprev-${index}`; preview.id = previewId; vidContainer.appendChild(preview);
         const inputUrl = document.createElement('input'); inputUrl.type = 'text'; inputUrl.value = currentSrc; inputUrl.id = inputId; inputUrl.style.width = '100%'; inputUrl.style.marginBottom = '5px'; inputUrl.placeholder = "Chemin vidéo";
         inputUrl.draggable = true; inputUrl.addEventListener('dragstart', (e) => { e.preventDefault(); e.stopPropagation(); });
@@ -284,7 +284,7 @@ function createBlockElement(node, index, callbacks, projectDir) {
         badge.style.background = '#34495e';
         const rawMd = callbacks.nodeToMarkdown(node);
         const area = document.createElement('textarea'); area.value = rawMd; area.style.width = '100%'; area.style.minHeight = '80px'; area.style.border = '1px solid #ddd'; area.style.borderRadius = '4px'; area.style.padding = '10px'; area.style.fontFamily = 'monospace';
-        if(node.type === 'code') { area.style.backgroundColor = '#2c3e50'; area.style.color = '#ecf0f1'; }
+        if (node.type === 'code') { area.style.backgroundColor = '#2c3e50'; area.style.color = '#ecf0f1'; }
         area.draggable = true; area.addEventListener('dragstart', (e) => { e.preventDefault(); e.stopPropagation(); });
         area.oninput = (e) => callbacks.onUpdateBlock(index, e.target.value, 'raw'); wrapper.appendChild(area);
     }
@@ -297,8 +297,8 @@ function createBlockElement(node, index, callbacks, projectDir) {
 
 function generateForm(container, frontMatter, ast, schema, callbacks, projectDir) {
     container.innerHTML = '';
-    container.dataset.schema = '[]'; 
-    
+    container.dataset.schema = '[]';
+
     // Suivi des clés déjà utilisées (pour filtrer la liste)
     const usedKeys = new Set(Object.keys(frontMatter));
 
@@ -306,7 +306,7 @@ function generateForm(container, frontMatter, ast, schema, callbacks, projectDir
     mainWrapper.style.display = 'flex';
     mainWrapper.style.gap = '20px';
     mainWrapper.style.flexWrap = 'wrap';
-    
+
     // --- COLONNE 1 : RACINE (Standard Zola) ---
     const rootContainer = document.createElement('div');
     rootContainer.style.flex = '1';
@@ -316,12 +316,12 @@ function generateForm(container, frontMatter, ast, schema, callbacks, projectDir
     rootContainer.style.borderRadius = '8px';
     rootContainer.style.border = '1px solid #ddd';
     rootContainer.innerHTML = '<h3 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #2c3e50; padding-bottom:10px;">⚙️ Paramètres Zola (Racine)</h3>';
-    
+
     // --- COLONNE 2 : EXTRA (Perso) ---
     const extraContainer = document.createElement('div');
     extraContainer.style.flex = '1';
     extraContainer.style.minWidth = '300px';
-    extraContainer.style.background = '#fcfaff'; 
+    extraContainer.style.background = '#fcfaff';
     extraContainer.style.padding = '20px';
     extraContainer.style.borderRadius = '8px';
     extraContainer.style.border = '1px solid #ddd';
@@ -362,16 +362,16 @@ function generateForm(container, frontMatter, ast, schema, callbacks, projectDir
     addStandardBtn.style.width = '100%';
     addStandardBtn.style.background = '#2c3e50';
     addStandardBtn.style.color = 'white';
-    
+
     addStandardBtn.onclick = () => {
         const ui = document.createElement('div');
         ui.style.marginTop = '10px'; ui.style.padding = '10px'; ui.style.background = '#f1f1f1'; ui.style.borderRadius = '5px';
-        
+
         // Liste déroulante des champs disponibles
         const select = document.createElement('select');
         select.className = 'form-control';
         select.style.marginBottom = '10px';
-        
+
         let hasOptions = false;
         for (const [key, conf] of Object.entries(ZOLA_DEFAULTS)) {
             // On ne propose que ce qui n'est pas encore utilisé (sauf extra qui est spécial)
@@ -387,12 +387,12 @@ function generateForm(container, frontMatter, ast, schema, callbacks, projectDir
         if (!hasOptions) {
             ui.innerHTML = "<div style='color:#666;'>Tous les champs standards sont déjà utilisés.</div>";
             const closeBtn = document.createElement('button');
-            closeBtn.innerText = "Fermer"; closeBtn.className = 'btn'; closeBtn.style.marginTop='5px';
+            closeBtn.innerText = "Fermer"; closeBtn.className = 'btn'; closeBtn.style.marginTop = '5px';
             closeBtn.onclick = () => rootContainer.replaceChild(addStandardBtn, ui);
             ui.appendChild(closeBtn);
         } else {
-            const addBtn = document.createElement('button'); addBtn.innerText = "Ajouter"; addBtn.className = 'btn'; addBtn.style.background='#28a745'; addBtn.style.color='white'; addBtn.style.marginRight='5px';
-            const cancelBtn = document.createElement('button'); cancelBtn.innerText = "Annuler"; cancelBtn.className = 'btn'; cancelBtn.style.background='#dc3545'; cancelBtn.style.color='white';
+            const addBtn = document.createElement('button'); addBtn.innerText = "Ajouter"; addBtn.className = 'btn'; addBtn.style.background = '#28a745'; addBtn.style.color = 'white'; addBtn.style.marginRight = '5px';
+            const cancelBtn = document.createElement('button'); cancelBtn.innerText = "Annuler"; cancelBtn.className = 'btn'; cancelBtn.style.background = '#dc3545'; cancelBtn.style.color = 'white';
 
             addBtn.onclick = () => {
                 const key = select.value;
@@ -425,11 +425,11 @@ function generateForm(container, frontMatter, ast, schema, callbacks, projectDir
 
     addCustomBtn.onclick = () => {
         const ui = document.createElement('div');
-        ui.style.marginTop = '10px'; ui.style.padding = '10px'; ui.style.background = '#f1f1f1'; ui.style.borderRadius = '5px'; ui.style.display='flex'; ui.style.gap='5px'; ui.style.flexWrap='wrap';
+        ui.style.marginTop = '10px'; ui.style.padding = '10px'; ui.style.background = '#f1f1f1'; ui.style.borderRadius = '5px'; ui.style.display = 'flex'; ui.style.gap = '5px'; ui.style.flexWrap = 'wrap';
 
         const nameInput = document.createElement('input');
         nameInput.placeholder = "Nom (ex: author)";
-        nameInput.className = 'form-control'; nameInput.style.flex='1';
+        nameInput.className = 'form-control'; nameInput.style.flex = '1';
 
         const typeSelect = document.createElement('select');
         typeSelect.className = 'form-control';
@@ -443,8 +443,8 @@ function generateForm(container, frontMatter, ast, schema, callbacks, projectDir
             <option value="date">Date</option>
         `;
 
-        const confirmBtn = document.createElement('button'); confirmBtn.innerText = "OK"; confirmBtn.className = 'btn'; confirmBtn.style.background='#28a745'; confirmBtn.style.color='white';
-        const cancelBtn = document.createElement('button'); cancelBtn.innerText = "X"; cancelBtn.className = 'btn'; cancelBtn.style.background='#dc3545'; cancelBtn.style.color='white';
+        const confirmBtn = document.createElement('button'); confirmBtn.innerText = "OK"; confirmBtn.className = 'btn'; confirmBtn.style.background = '#28a745'; confirmBtn.style.color = 'white';
+        const cancelBtn = document.createElement('button'); cancelBtn.innerText = "X"; cancelBtn.className = 'btn'; cancelBtn.style.background = '#dc3545'; cancelBtn.style.color = 'white';
 
         confirmBtn.onclick = () => {
             const keyName = nameInput.value.trim().toLowerCase().replace(/\s+/g, '_'); // Nettoyage nom

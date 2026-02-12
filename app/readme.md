@@ -2,7 +2,7 @@ commandes pour initialisation:
 npm install --save-dev @electron-forge/cli
 
 npx electron-forge import
-
+utilisation de sqlite3 pour la bdd
 Pour lancer l'appli:
 npm start
 npm run dev

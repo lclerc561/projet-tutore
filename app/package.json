@@ -1,7 +1,7 @@
 {
   "name": "app",
   "version": "1.0.0",
-  "description": "",
+  "description": "Appli Desktop pour Zola avec authentification SQLite et gestion de contenu Markdown",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -10,8 +10,8 @@
     "package": "electron-forge package",
     "make": "electron-forge make"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["zola", "cms", "markdown"],
+  "author": "Projet Emile",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
@@ -21,6 +21,7 @@
     "gray-matter": "^4.0.3",
     "remark-parse": "^11.0.0",
     "remark-stringify": "^11.0.0",
+    "sqlite3": "^5.1.7",
     "unified": "^11.0.5"
   },
   "devDependencies": {
