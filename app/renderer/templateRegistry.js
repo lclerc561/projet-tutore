@@ -48,31 +48,6 @@ module.exports = {
         body: "# {{title}}\n\nDescription…\n\n## Sections\n\n…"
     },
 
-    blogHero: {
-        label: "Article avec image Hero",
-        htmlTemplate: "post-hero.html",
-        zola_section: "blog",
-
-        frontMatter: {
-            title: "",
-            date: () => new Date().toISOString().split("T")[0],
-            template: "post-hero.html"
-        },
-
-        extra: {
-            hero_image: "/images/default.jpg",
-            summary: ""
-        },
-
-        body: `# {{title}}
-
-            Introduction...
-
-            ## Section 1
-
-        Contenu ici...`
-    },
-
     teamMember: {
         label: "Profil équipe",
         htmlTemplate: "team.html",
