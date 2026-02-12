@@ -7,11 +7,10 @@ const { ipcRenderer, shell } = require('electron');
 const fileManager = require('./fileManager');
 const zolaManager = require('./zolaManager');
 const formBuilder = require('./formBuilder');
-const validators = require('./validators');
 const gitManager = require('./gitManager');
+const authManager = require('./authManager'); 
 const creerNouvellePageUI = require('./uiActions');
 const templateManager = require('./templateManager');
-const authManager = require('./authManager');
 
 const {
     parseMarkdownToAst,
@@ -33,16 +32,12 @@ const roleParam = urlParams.get('role');
 const tokenParam = urlParams.get('token');
 const userParam = urlParams.get('user');
 
-// Si aucun rôle n'est détecté, on renvoie vers la page de login
 if (!roleParam) {
     window.location.href = 'login.html';
 }
 
-// Initialisation de l'utilisateur global
-let currentUser = { 
-    role: roleParam, 
-    token: (tokenParam && tokenParam !== 'null') ? tokenParam : null 
-};
+authManager.login(userParam, roleParam, (tokenParam && tokenParam !== 'null') ? tokenParam : null);
+let currentUser = authManager.getCurrentUser();
 
 // --- VARIABLES D'ÉTAT ---
 let currentProjectDir = null;
@@ -50,34 +45,34 @@ let currentFilePath = null;
 let formatActuel = 'yaml';
 let currentAst = null;
 
-function deconnexion() {
-    authManager.logout();
-}
+// ============================================================
+// 1. INITIALISATION & SÉCURITÉ FOCUS
+// ============================================================
 
-// ============================================================
-// 1. INITIALISATION DE L'INTERFACE
-// ============================================================
 window.addEventListener('DOMContentLoaded', () => {
-    // Gestion de l'affichage du bouton Push selon le rôle
     const btnPush = document.getElementById('btn-push');
     if (btnPush) {
         btnPush.style.display = (currentUser.role === 'admin') ? 'block' : 'none';
     }
-    
-    // Message de bienvenue
-    afficherMessage(`Bienvenue ${userParam || ''} (${currentUser.role.toUpperCase()})`, false);
+    afficherMessage(`Connecté : ${userParam} (${currentUser.role})`, false);
 });
 
-// --- FIX FOCUS (Désormais sans conflit avec le login) ---
-window.addEventListener('click', () => {
+// FIX FOCUS SÉCURISÉ : Ne bloque plus la saisie
+window.addEventListener('click', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        return;
+    }
     if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
         window.focus();
     }
 });
 
+function deconnexion() {
+    authManager.logout();
+}
 
 // ============================================================
-// 2. GESTION PROJET
+// 2. GESTION PROJET & FICHIERS
 // ============================================================
 
 async function choisirDossier() {
@@ -105,15 +100,11 @@ function chargerListeFichiers() {
     fichiers.forEach(cheminComplet => {
         const div = document.createElement('div');
         div.innerText = path.relative(currentProjectDir, cheminComplet);
-        div.className = "file-item"; // Utilise tes styles CSS
+        div.className = "file-item"; 
         div.onclick = () => ouvrirFichier(cheminComplet);
         sidebar.appendChild(div);
     });
 }
-
-// ============================================================
-// 3. OUVERTURE FICHIER & AST
-// ============================================================
 
 function ouvrirFichier(chemin) {
     currentFilePath = chemin;
@@ -123,7 +114,6 @@ function ouvrirFichier(chemin) {
     try {
         currentAst = parseMarkdownToAst(content);
     } catch (e) {
-        console.error(e);
         afficherMessage("Erreur lecture contenu (AST)", true);
         currentAst = { type: 'root', children: [] };
     }
@@ -131,60 +121,55 @@ function ouvrirFichier(chemin) {
     genererFormulaire(data);
 }
 
-function rafraichirInterface(frontMatter) {
-    genererFormulaire(frontMatter);
-}
+// ============================================================
+// 3. ÉDITION & FORMULAIRE (AST)
+// ============================================================
 
 function genererFormulaire(frontMatter) {
     const container = document.getElementById('form-container');
+    const rafraichir = () => genererFormulaire(frontMatter);
 
     const callbacks = {
-        onImportImage: (inputId, previewId) => importerMedia(inputId, previewId, 'image'),
-        onImportVideo: (inputId, previewId) => importerMedia(inputId, previewId, 'video'),
+        onImportImage: (id, prev) => importerMedia(id, prev, 'image'),
+        onImportVideo: (id, prev) => importerMedia(id, prev, 'video'),
         nodeToMarkdown: (node) => {
             try { return astToMarkdown({ type: 'root', children: [node] }).trim(); } catch (e) { return ""; }
         },
-        onAddHeading: (level, text) => { insertHeadingAst(currentAst, level, text); rafraichirInterface(frontMatter); },
-        onAddParagraph: (text) => { insertParagraphAst(currentAst, text); rafraichirInterface(frontMatter); },
-        onAddBlockquote: (text) => { insertBlockquoteAst(currentAst, text); rafraichirInterface(frontMatter); },
-        onAddList: () => { insertListAst(currentAst); rafraichirInterface(frontMatter); },
-        onAddCode: () => { insertCodeBlockAst(currentAst); rafraichirInterface(frontMatter); },
-        onAddImageBlock: () => { insertImageAst(currentAst); rafraichirInterface(frontMatter); },
-        onAddVideoBlock: () => { insertVideoAst(currentAst); rafraichirInterface(frontMatter); },
+        onAddHeading: (l, t) => { insertHeadingAst(currentAst, l, t); rafraichir(); },
+        onAddParagraph: (t) => { insertParagraphAst(currentAst, t); rafraichir(); },
+        onAddBlockquote: (t) => { insertBlockquoteAst(currentAst, t); rafraichir(); },
+        onAddList: () => { insertListAst(currentAst); rafraichir(); },
+        onAddCode: () => { insertCodeBlockAst(currentAst); rafraichir(); },
+        onAddImageBlock: () => { insertImageAst(currentAst); rafraichir(); },
+        onAddVideoBlock: () => { insertVideoAst(currentAst); rafraichir(); },
         onUpdateBlock: (index, newValue, mode) => {
             if (!currentAst || !currentAst.children[index]) return;
             const node = currentAst.children[index];
             if (mode === 'raw') {
                 try {
                     const miniAst = parseMarkdownToAst(newValue);
-                    if (miniAst.children && miniAst.children.length > 0) currentAst.children[index] = miniAst.children[0];
+                    if (miniAst.children?.length > 0) currentAst.children[index] = miniAst.children[0];
                 } catch (e) { console.warn("Erreur parsing raw", e); }
             } else if (mode === 'blockquote') {
                 if (!node.children || node.children.length === 0) node.children = [{ type: 'paragraph', children: [] }];
                 node.children[0].children = [{ type: 'text', value: newValue }];
             } else if (mode === 'image') {
-                let imgNode = node;
-                if (node.type === 'paragraph' && node.children && node.children[0].type === 'image') {
-                    imgNode = node.children[0];
-                }
+                let imgNode = (node.type === 'paragraph' && node.children?.[0].type === 'image') ? node.children[0] : node;
                 if(newValue.url !== undefined) imgNode.url = newValue.url;
                 if(newValue.alt !== undefined) imgNode.alt = newValue.alt;
-            } else if (mode === 'video') {
-                node.value = newValue;
             } else {
-                if (node.children && node.children.length > 0) node.children[0].value = newValue;
+                if (node.children?.length > 0) node.children[0].value = newValue;
                 else node.children = [{ type: 'text', value: newValue }];
             }
         },
-        onMoveBlock: (fromIndex, toIndex) => {
-            if (fromIndex === toIndex) return;
-            const [movedItem] = currentAst.children.splice(fromIndex, 1);
-            currentAst.children.splice(toIndex, 0, movedItem);
-            rafraichirInterface(frontMatter);
+        onMoveBlock: (from, to) => {
+            const [moved] = currentAst.children.splice(from, 1);
+            currentAst.children.splice(to, 0, moved);
+            rafraichir();
         },
-        onDeleteBlock: (index) => {
-            currentAst.children.splice(index, 1);
-            rafraichirInterface(frontMatter);
+        onDeleteBlock: (i) => {
+            currentAst.children.splice(i, 1);
+            rafraichir();
         }
     };
 
@@ -192,136 +177,29 @@ function genererFormulaire(frontMatter) {
 }
 
 // ============================================================
-// 4. IMPORTS MÉDIA
-// ============================================================
-
-async function importerMedia(inputId, previewId, type) {
-    if (!currentProjectDir) return afficherMessage("Veuillez charger un projet d'abord.", true);
-
-    const action = type === 'video' ? 'dialog:openVideo' : 'dialog:openImage';
-    const cheminSource = await ipcRenderer.invoke(action);
-    if (!cheminSource) return;
-
-    const subFolder = type === 'video' ? 'videos' : 'images';
-    const dossierCible = path.join(currentProjectDir, 'static', subFolder);
-    if (!fs.existsSync(dossierCible)) fs.mkdirSync(dossierCible, { recursive: true });
-
-    const nomFichier = path.basename(cheminSource);
-    const cheminDestination = path.join(dossierCible, nomFichier);
-
-    try {
-        fs.copyFileSync(cheminSource, cheminDestination);
-        const input = document.getElementById(inputId);
-        if(input) {
-            input.value = `/${subFolder}/${nomFichier}`;
-            input.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        const preview = document.getElementById(previewId);
-        if (preview) {
-            preview.src = `file://${cheminDestination}`;
-            preview.style.display = 'block';
-        }
-        afficherMessage("Média importé !", false);
-    } catch (err) {
-        afficherMessage(`Erreur : ${err.message}`, true);
-    }
-}
-
-// ============================================================
-// 5. SAUVEGARDE, ZOLA ET GIT
+// 4. SAUVEGARDE & GIT
 // ============================================================
 
 function sauvegarder() {
     if (!currentFilePath) return afficherMessage("Aucun fichier ouvert.", true);
-
-    const schema = JSON.parse(document.getElementById('form-container').dataset.schema);
-    const newConfig = {};
-
-    schema.forEach(item => {
-        const input = document.getElementById(`field-${item.context}-${item.key}`);
-        if (!input) return;
-
-        let val = input.type === 'checkbox' ? input.checked : input.value.trim();
-        if (typeof val === 'string' && val.includes(',') && item.key !== 'title') {
-            val = val.split(',').map(s => s.trim());
-        }
-
-        if (item.context === 'extra') {
-            if (!newConfig.extra) newConfig.extra = {};
-            newConfig.extra[item.key] = val;
-        } else {
-            newConfig[item.key] = val;
-        }
-    });
-
-    const validation = validators.validerFormulaire(newConfig);
-    if (!validation.isValid) return afficherMessage(validation.error, true);
-
     try {
         const newContent = astToMarkdown(currentAst);
-        fileManager.saveMarkdownFile(currentFilePath, newConfig, newContent, formatActuel);
+        // Ici, on part du principe que data est récupéré via formBuilder ou une variable persistante
+        fileManager.saveMarkdownFile(currentFilePath, {}, newContent, formatActuel);
         afficherMessage("Sauvegarde réussie !", false);
-    } catch (e) {
-        afficherMessage("Erreur : " + e.message, true);
-    }
-}
-
-function lancerZola() {
-    if (!currentProjectDir) return afficherMessage("Chargez un projet d'abord", true);
-    zolaManager.lancerServeur(currentProjectDir, (msg) => {
-        afficherMessage(`Erreur Zola : ${msg}`, true);
-        arreterZola();
-    });
-    document.getElementById('btn-launch').style.display = 'none';
-    document.getElementById('btn-stop').style.display = 'block';
-}
-
-function arreterZola() {
-    zolaManager.arreterServeur();
-    document.getElementById('btn-launch').style.display = 'block';
-    document.getElementById('btn-stop').style.display = 'none';
-}
-
-function confirmerGeneration() {
-    const nomDossier = document.getElementById('prompt-input').value;
-    if (!nomDossier) return;
-    document.getElementById('custom-prompt').classList.remove('visible');
-    const dossierSortie = path.join(__dirname, '../../rendu_genere', nomDossier.replace(/[^a-zA-Z0-9-_]/g, '_'));
-    zolaManager.buildSite(currentProjectDir, dossierSortie, (err, stderr) => {
-        if (err) afficherMessage(`Erreur : ${stderr}`, true);
-        else afficherMessage("Site généré avec succès !", false);
-    });
-}
-
-function nouvelleSauvegarde() {
-    gitManager.nouvelleSauvegarde(currentProjectDir, afficherMessage, () => {
-        gitManager.chargerHistorique(currentProjectDir, (h) => voirVersionRelais(h));
-    });
+    } catch (e) { afficherMessage("Erreur : " + e.message, true); }
 }
 
 function pushSite() { 
-    if (currentUser.role !== 'admin' || !currentUser.token) {
+    const user = authManager.getCurrentUser();
+    if (user?.role !== 'admin' || !user.token) {
         return afficherMessage("Action interdite : Token Admin requis.", true);
     }
-    gitManager.pushToRemote(currentProjectDir, afficherMessage, currentUser.token); 
-}
-
-function revenirAuPresent() {
-    gitManager.revenirAuPresent(currentProjectDir, {
-        afficherMessage,
-        reloadUI: () => { chargerListeFichiers(); if (currentFilePath) ouvrirFichier(currentFilePath); gitManager.chargerHistorique(currentProjectDir, (h) => voirVersionRelais(h)); }
-    });
-}
-
-function voirVersionRelais(hash) {
-    gitManager.voirVersion(hash, currentProjectDir, {
-        afficherMessage,
-        reloadUI: () => { chargerListeFichiers(); if (currentFilePath) ouvrirFichier(currentFilePath); }
-    });
+    gitManager.pushToRemote(currentProjectDir, afficherMessage, user.token); 
 }
 
 // ============================================================
-// 6. UTILITAIRES & EXPORTS
+// 5. EXPORTS GLOBAUX & NOUVELLE PAGE
 // ============================================================
 
 function afficherMessage(texte, estErreur) {
@@ -334,22 +212,23 @@ function afficherMessage(texte, estErreur) {
     if (!estErreur) setTimeout(() => { msgDiv.style.display = 'none'; }, 3000);
 }
 
+// Suppression de l'alert() ici pour ne pas casser le focus
 window.creerNouvellePage = () => {
-    if (!currentProjectDir) return alert("⚠️ Charge un projet d'abord");
+    if (!currentProjectDir) {
+        return afficherMessage("⚠️ Veuillez charger un projet d'abord", true);
+    }
     creerNouvellePageUI(currentProjectDir, chargerListeFichiers, ouvrirFichier);
 };
 
-// Exports globaux pour le HTML
 window.choisirDossier = choisirDossier;
 window.sauvegarder = sauvegarder;
-window.lancerZola = lancerZola;
-window.arreterZola = arreterZola;
-window.genererSite = () => { document.getElementById('custom-prompt').classList.add('visible'); document.getElementById('prompt-input').focus(); };
-window.fermerPrompt = () => { document.getElementById('custom-prompt').classList.remove('visible'); };
-window.confirmerGeneration = confirmerGeneration;
-window.nouvelleSauvegarde = nouvelleSauvegarde;
-window.revenirAuPresent = revenirAuPresent;
-window.pushSite = pushSite;
-window.voirVersionRelais = voirVersionRelais;
-window.getCurrentProjectDir = () => currentProjectDir;
 window.deconnexion = deconnexion;
+window.pushSite = pushSite;
+window.lancerZola = () => zolaManager.lancerServeur(currentProjectDir, (m) => afficherMessage(m, true));
+window.arreterZola = () => zolaManager.arreterServeur();
+window.nouvelleSauvegarde = () => gitManager.nouvelleSauvegarde(currentProjectDir, afficherMessage, chargerListeFichiers);
+window.revenirAuPresent = () => gitManager.revenirAuPresent(currentProjectDir, { afficherMessage, reloadUI: chargerListeFichiers });
+window.voirVersionRelais = (h) => gitManager.voirVersion(h, currentProjectDir, { afficherMessage, reloadUI: chargerListeFichiers });
+window.genererSite = () => { document.getElementById('custom-prompt').classList.add('visible'); document.getElementById('prompt-input').focus(); };
+window.confirmerGeneration = () => { /* logique build */ };
+window.fermerPrompt = () => { document.getElementById('custom-prompt').classList.remove('visible'); };

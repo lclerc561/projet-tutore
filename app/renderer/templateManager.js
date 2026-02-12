@@ -1,5 +1,14 @@
 const templateRegistry = require('./templateRegistry');
 
+// AJOUTER CETTE FONCTION
+function getTemplates() {
+    return Object.keys(templateRegistry).map(key => ({
+        id: key,
+        name: templateRegistry[key].label,
+        zola_section: templateRegistry[key].zola_section || ''
+    }));
+}
+
 function genererMarkdownDepuisTemplate(templateKey, nomPage) {
     const template = templateRegistry[templateKey];
 
