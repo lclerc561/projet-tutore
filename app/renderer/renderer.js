@@ -12,7 +12,6 @@ const gitManager = require('./gitManager');
 
 // Imports des modules de la feature "Création de page"
 const creerNouvellePageUI = require('./uiActions');
-const templateManager = require('./templateManager');
 
 const {
     parseMarkdownToAst,

@@ -1,8 +1,7 @@
 // renderer/uiActions.js
 const fs = require('fs');
 const path = require('path');
-const templateManager = require('./templateManager');
-const templateRegistry = require('./templateRegistry');
+const templateEngine = require('./templateEngine');
 
 module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile) {
 
@@ -29,18 +28,19 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
         z-index:2000;
     `;
 
-    // Génération dynamique des templates
-    let templateOptions = '';
-    for (const key in templateRegistry) {
-        templateOptions += `
-            <option value="${key}">
-                ${templateRegistry[key].label}
-            </option>
-        `;
+    const templatesDir = path.join(__dirname, "../templates");
+    const templates = templateEngine.getTemplates(templatesDir);
+
+    let templateOptions = templates.map(t =>
+        `<option value="${t.id}">${t.label}</option>`
+    ).join("");
+
+    if (!templateOptions) {
+        templateOptions = `<option disabled>Aucun template trouvé</option>`;
     }
 
     overlay.innerHTML = `
-        <div style="
+        <div id="modal-content" style="
             background:white;
             padding:20px;
             border-radius:8px;
@@ -48,6 +48,8 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
             box-shadow:0 10px 30px rgba(0,0,0,0.3);
         ">
             <h3 style="margin-top:0;">➕ Nouvelle page Zola</h3>
+
+            <div id="new-page-error"></div>
 
             <label style="font-weight:bold;">Nom du fichier</label>
             <input id="new-page-name" type="text"
@@ -61,8 +63,7 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
             </select>
 
             <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button id="cancel-new-page"
-                    style="padding:8px 12px;">
+                <button id="cancel-new-page" style="padding:8px 12px;">
                     Annuler
                 </button>
 
@@ -92,10 +93,10 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
     document.getElementById('confirm-new-page').onclick = () => {
 
         const nom = document.getElementById('new-page-name').value.trim();
-        const templateKey = document.getElementById('new-page-template').value;
+        const templateFile = document.getElementById('new-page-template').value;
 
         if (!nom) {
-            alert("Le nom ne peut pas être vide");
+            afficherErreur("Le nom ne peut pas être vide");
             return;
         }
 
@@ -103,13 +104,41 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
 
         try {
 
-            // Génération automatique du markdown
-            const markdown = templateManager.genererMarkdownDepuisTemplate(
-                templateKey,
-                safeName
+            const templatePath = path.join(templatesDir, templateFile);
+
+            if (!fs.existsSync(templatePath)) {
+                afficherErreur("Template introuvable");
+                return;
+            }
+
+            // 🔎 Analyse automatique du template HTML
+            const analysis = templateEngine.analyseTemplate(templatePath);
+
+            // 🎯 Génération automatique des valeurs
+            const values = {};
+
+            analysis.pageVars.forEach(key => {
+                if (key === "title") {
+                    values[key] = safeName.replace(/-/g, " ");
+                } else if (key === "date") {
+                    values[key] = new Date().toISOString().split("T")[0];
+                } else {
+                    values[key] = "";
+                }
+            });
+
+            analysis.extraVars.forEach(key => {
+                values[key] = "";
+            });
+
+            // 📝 Génération markdown
+            const markdown = templateEngine.generateMarkdown(
+                templateFile,
+                analysis,
+                values
             );
 
-            // Dossier content
+            // 📂 Dossier content
             const contentDir = path.join(projectDir, 'content');
 
             if (!fs.existsSync(contentDir)) {
@@ -135,24 +164,18 @@ module.exports = function creerNouvellePageUI(projectDir, refreshFiles, openFile
         }
     };
 
-    function afficherErreur(message) {
-    let errorDiv = document.getElementById('new-page-error');
+    // ============================
+    // GESTION ERREUR
+    // ============================
 
-    if (!errorDiv) {
-        errorDiv = document.createElement('div');
-        errorDiv.id = 'new-page-error';
+    function afficherErreur(message) {
+        const errorDiv = document.getElementById('new-page-error');
         errorDiv.style.color = '#e74c3c';
         errorDiv.style.marginBottom = '10px';
         errorDiv.style.fontWeight = 'bold';
+        errorDiv.innerText = message;
 
-        const modal = document.querySelector('#modal-new-page div');
-        modal.insertBefore(errorDiv, modal.children[1]);
+        const input = document.getElementById('new-page-name');
+        if (input) input.focus();
     }
-
-    errorDiv.innerText = message;
-
-    const input = document.getElementById('new-page-name');
-    if (input) input.focus();
-}
-
 };
