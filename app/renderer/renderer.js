@@ -9,6 +9,8 @@ const zolaManager = require('./zolaManager');
 const formBuilder = require('./formBuilder');
 const validators = require('./validators');
 const gitManager = require('./gitManager');
+const ftpManager = require('./ftpManager');
+const githubManager = require('./githubManager');
 
 // Imports des modules de la feature "Création de page"
 const creerNouvellePageUI = require('./uiActions');
@@ -405,8 +407,136 @@ window.creerNouvellePage = () => {
     );
 };
 
+
+
 // ============================================================
-// 8. EXPORTS GLOBAUX
+// 8. GESTION FTP
+// ============================================================
+
+function openFtpModal() {
+    if (!currentProjectDir) {
+        afficherMessage("⚠️ Veuillez charger un projet d'abord.", true);
+        return;
+    }
+
+    // On essaie de pré-remplir avec la config sauvegardée
+    const config = ftpManager.loadConfig(currentProjectDir);
+    if (config) {
+        document.getElementById('ftp-host').value = config.host || '';
+        document.getElementById('ftp-user').value = config.user || '';
+        document.getElementById('ftp-port').value = config.port || 21;
+        document.getElementById('ftp-root').value = config.remoteRoot || '/';
+        // Par sécurité, on ne remplit pas le mot de passe automatiquement ou on le stocke
+        // Pour cet exemple, on suppose que l'utilisateur le remet, ou on le stocke dans le json (risqué mais pratique)
+        document.getElementById('ftp-pass').value = config.password || ''; 
+    }
+
+    document.getElementById('ftp-modal').style.display = 'flex';
+}
+
+function closeFtpModal() {
+    document.getElementById('ftp-modal').style.display = 'none';
+}
+
+async function lancerDeploiement() {
+    // 1. Récupérer les infos
+    const config = {
+        host: document.getElementById('ftp-host').value,
+        user: document.getElementById('ftp-user').value,
+        password: document.getElementById('ftp-pass').value,
+        port: parseInt(document.getElementById('ftp-port').value) || 21,
+        remoteRoot: document.getElementById('ftp-root').value
+    };
+
+    if (!config.host || !config.user || !config.password) {
+        alert("Veuillez remplir tous les champs FTP.");
+        return;
+    }
+
+    closeFtpModal();
+    afficherMessage("⏳ Génération du site avant envoi...", false);
+
+    // 2. Générer le site dans un dossier temporaire
+    // On utilise un dossier '_temp_deploy' à la racine du projet
+    const tempBuildDir = path.join(currentProjectDir, '_temp_deploy');
+    
+    // On sauvegarde la config pour la prochaine fois
+    ftpManager.saveConfig(currentProjectDir, config);
+
+    // On lance le build Zola
+    zolaManager.buildSite(currentProjectDir, tempBuildDir, async (err, stderr) => {
+        if (err) {
+            afficherMessage(`❌ Erreur Build : ${stderr}`, true);
+            return;
+        }
+
+        // 3. Si le build est OK, on lance l'upload FTP
+        try {
+            await ftpManager.deploy(config, tempBuildDir, afficherMessage);
+            
+            // Succès !
+            alert("Site mis à ligne avec succès ! 🌍");
+            
+            // Nettoyage : on supprime le dossier temporaire (optionnel)
+            try { fs.rmSync(tempBuildDir, { recursive: true, force: true }); } catch(e) {}
+
+        } catch (ftpError) {
+            // L'erreur est déjà gérée dans le callback afficherMessage via ftpManager
+            console.error(ftpError);
+        }
+    });
+}
+
+// ============================================================
+// 9. EXPOSITION GLOBALE (Mise à jour)
+// ============================================================
+// ... vos autres exports ...
+window.openFtpModal = openFtpModal;
+window.closeFtpModal = closeFtpModal;
+window.lancerDeploiement = lancerDeploiement;
+
+// ============================================================
+// 10. GESTION GITHUB PAGES
+// ============================================================
+
+function configurerGitHub() {
+    if (!currentProjectDir) {
+        afficherMessage("⚠️ Chargez un projet d'abord.", true);
+        return;
+    }
+
+    // Vérification si déjà fait
+    if (githubManager.isConfigured(currentProjectDir)) {
+        const reponse = confirm("GitHub Pages semble déjà configuré (fichier zola.yml détecté).\nVoulez-vous le réécrire ?");
+        if (!reponse) return;
+    }
+
+    // Création du fichier
+    const success = githubManager.setupPages(currentProjectDir, afficherMessage);
+    
+    if (success) {
+        // --- LE RAPPEL IMPORTANT EST ICI ---
+        alert(`✅ Fichier de configuration créé avec succès !
+
+⚠️ ÉTAPE CRUCIALE SUR GITHUB.COM :
+Pour que le site fonctionne, vous devez activer "GitHub Actions" sur le site web :
+
+1. Allez sur votre dépôt GitHub > onglet 'Settings'.
+2. Cliquez sur 'Pages' (menu de gauche).
+3. Dans la section 'Build and deployment', changez la Source.
+   👉 Sélectionnez : "GitHub Actions".
+
+Une fois cela fait :
+1. Revenez ici et cliquez sur '💾 Sauvegarder l'état'.
+2. Cliquez sur '☁️ Publier sur Internet'.`);
+        
+        // On lance la sauvegarde automatiquement pour gagner du temps
+        nouvelleSauvegarde();
+    }
+}
+
+// ============================================================
+// 11. EXPORTS GLOBAUX
 // ============================================================
 
 window.choisirDossier = choisirDossier;
@@ -419,6 +549,7 @@ window.confirmerGeneration = confirmerGeneration;
 window.nouvelleSauvegarde = nouvelleSauvegarde;
 window.revenirAuPresent = revenirAuPresent;
 window.pushSite = pushSite;
+window.configurerGitHub = configurerGitHub;
 
 // Exports pour les modules externes (feature camarade)
 window.getCurrentProjectDir = () => currentProjectDir;
